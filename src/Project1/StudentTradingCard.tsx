@@ -1,7 +1,33 @@
 import React from 'react'
 
 import { Device } from '../Helper'
-export class Project1Root extends React.Component {
+interface Project1Root_State {
+    width: number
+    height: number
+}
+export class Project1Root extends React.Component<any, Project1Root_State> {
+    constructor(props) {
+        super(props)
+        this.state = {
+            width: window.innerWidth,
+            height: window.innerHeight
+        }
+    }
+    updateDimensions() {
+        this.setState({
+            width: window.innerWidth,
+            height: window.innerHeight
+        })
+    }
+    private updaterr: ()=>void = null;
+    componentDidMount(): void {
+        let ths = this;
+        this.updaterr = ()=>{ths.updateDimensions()};
+        window.addEventListener('resize', this.updaterr)
+    }
+    componentWillUnmount(): void {
+        window.removeEventListener('resize', this.updaterr)
+    }
     render() {
         switch (Device.getType()) {
             case 'phone':
@@ -19,7 +45,10 @@ export class Project1Root extends React.Component {
     }
 }
 
+
+
 export class StudentTradingCard extends React.Component {
+
     overHang: number = 24;
     fontSizes = {
         largeTitle: 36,
