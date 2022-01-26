@@ -37,17 +37,21 @@ export class StudentTradingCard extends React.Component {
     ]
     render() {
         return <div style={{ backgroundColor: '#F05F5F', width: '100%', height: '100%', fontFamily: "'Varela Round', sans-serif", color: 'white', paddingBottom: `${this.sidePadding * 2}px` }}>
-            <div style={{ height: 250, width: '100%', position: 'relative', backgroundSize: 'cover', backgroundImage: "url('project1/background.png')" }}>
-                <div style={{ width: 256, height: 256, position: 'absolute', bottom: 0, left: '50%', transform: `translate(-50%, ${this.overHang}px)`, backgroundSize: '100%', backgroundImage: "url('project1/alanSquare.jpg')", borderRadius: 24 }}>
+            <div style={{ height: 250, width: '100%', position: 'relative', backgroundSize: 'cover', backgroundImage: "url('project1/backgroundOpt.png')" }}>
+
+                <div style={{ width: 256, height: 256, position: 'absolute', bottom: 0, left: '50%', transform: `translate(-50%, ${this.overHang}px)`, backgroundSize: '100%', backgroundImage: "url('project1/alanSquareOpt.jpg')", borderRadius: 24 }}>
 
                 </div>
             </div>
-            <div style={{ paddingLeft: this.sidePadding + 'px', paddingRight: this.sidePadding + 'px' }}>
-                <div style={{ fontSize: this.fontSizes.largeTitle, textAlign: 'center', marginTop: this.overHang, color: this.colors.lightText[0] }}>Alan Sorrill</div>
+            <div style={{ paddingLeft: this.sidePadding + 'px', paddingRight: this.sidePadding + 'px', marginTop: this.overHang + this.sidePadding }}>
+
+                <div style={{ fontSize: this.fontSizes.largeTitle, textAlign: 'center', marginTop: 8, color: this.colors.lightText[0] }}>Alan Sorrill</div>
                 <div style={{ fontSize: this.fontSizes.smallTitle, textAlign: 'right', color: this.colors.lightText[1] }}>About Me</div>
                 <div style={{ fontSize: this.fontSizes.body, textAlign: 'left', color: this.colors.lightText[0], paddingBottom: this.sidePadding }}>
                     I'm a senior undergrad majoring in computer science.<br />
-                    My hobbies include programming and cooking.<br />
+                    My hobbies include cooking and coding <a href='https://github.dev/AlanSorrill/GDSN3' className="material-icons noselect" style={{ cursor: 'pointer', color: this.colors.lightText[0], position: 'relative', top: 2, fontSize: this.fontSizes.body }}>
+                        code
+                    </a><br />
                     I play trumpet in the Hawkeye Marching Band.
                 </div>
                 <div style={{ fontSize: this.fontSizes.smallTitle, textAlign: 'right', color: this.colors.lightText[1] }}>Favorites</div>
@@ -67,10 +71,10 @@ export class InterestCard extends React.Component<InterestCard_Props, InterestCa
     padding = 5
     render() {
         return <div style={{ width: '100%', height: 75, backgroundColor: fColor.white.toHexString(), marginBottom: 8, borderRadius: 24, display: 'flex', boxShadow: '1px 1px 2px #111' }}>
-            <img style={{ width: this.imageSize, height: this.imageSize, margin: this.padding, borderRadius: 21 }} src={this.props.image} />
-            <div style={{ flexGrow: 1, position: 'relative', padding: this.padding, paddingTop: this.padding * 2}}>
+            <div style={{ width: this.imageSize, height: this.imageSize, margin: this.padding, borderRadius: 21, backgroundPosition: '50%, 50%', backgroundSize: 'cover', backgroundImage: `url('${this.props.image }')`}} />
+            <div style={{ flexGrow: 1, position: 'relative', padding: this.padding, paddingTop: this.padding * 2 }}>
                 <div style={{ textAlign: 'right', position: 'absolute', top: this.padding, right: this.padding * 2, color: fColor.darkText[1].toHexString() }}>{this.props.title}</div>
-                <div style={{ textAlign: 'left', position: 'absolute', left: 0, bottom: 0, color: fColor.darkText[0].toHexString(), fontSize: `${this.imageSize/2}px`}}>{this.props.value}</div>
+                <div style={{ textAlign: 'left', position: 'absolute', left: 0, bottom: 0, color: fColor.darkText[0].toHexString(), fontSize: `${this.imageSize / 2}px` }}>{this.props.value}</div>
             </div>
         </div>
     }
