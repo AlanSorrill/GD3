@@ -1,3 +1,5 @@
+import { FColorDirectory } from "./FColor";
+
 export type DeviceType = 'phone' | 'tablet' | 'desktop'
 export type Orientation = 'vertical' | 'horizontal'
 export class Device {
@@ -23,4 +25,21 @@ export class Device {
     static getOrientation(): Orientation {
         return (window.innerWidth < window.innerHeight) ? 'vertical' : 'horizontal'
     }
+}
+
+
+
+declare global {
+
+    interface String {
+        replaceAll(a: string, b: string): string;
+    }
+    var fColor: FColorDirectory
+}
+window.fColor = new FColorDirectory();
+export { fColor }
+if (typeof String.prototype.replaceAll == 'undefined') {
+    String.prototype.replaceAll = function (a: string, b: string) {
+        return this.split(a).join(b);
+    };
 }
