@@ -1,7 +1,33 @@
 import React from 'react'
 
 import { Device } from '../Helper'
-export class Project1Root extends React.Component {
+interface Project1Root_State {
+    width: number
+    height: number
+}
+export class Project1Root extends React.Component<any, Project1Root_State> {
+    constructor(props) {
+        super(props)
+        this.state = {
+            width: window.innerWidth,
+            height: window.innerHeight
+        }
+    }
+    updateDimensions() {
+        this.setState({
+            width: window.innerWidth,
+            height: window.innerHeight
+        })
+    }
+    private updaterr: ()=>void = null;
+    componentDidMount(): void {
+        let ths = this;
+        this.updaterr = ()=>{ths.updateDimensions()};
+        window.addEventListener('resize', this.updaterr)
+    }
+    componentWillUnmount(): void {
+        window.removeEventListener('resize', this.updaterr)
+    }
     render() {
         switch (Device.getType()) {
             case 'phone':
@@ -19,7 +45,10 @@ export class Project1Root extends React.Component {
     }
 }
 
+
+
 export class StudentTradingCard extends React.Component {
+
     overHang: number = 24;
     fontSizes = {
         largeTitle: 36,
@@ -68,9 +97,9 @@ export class InterestCard extends React.Component<InterestCard_Props, InterestCa
     render() {
         return <div style={{ width: '100%', height: 75, backgroundColor: fColor.white.toHexString(), marginBottom: 8, borderRadius: 24, display: 'flex', boxShadow: '1px 1px 2px #111' }}>
             <img style={{ width: this.imageSize, height: this.imageSize, margin: this.padding, borderRadius: 21 }} src={this.props.image} />
-            <div style={{ flexGrow: 1, position: 'relative', padding: this.padding, paddingTop: this.padding * 2}}>
+            <div style={{ flexGrow: 1, position: 'relative', padding: this.padding, paddingTop: this.padding * 2 }}>
                 <div style={{ textAlign: 'right', position: 'absolute', top: this.padding, right: this.padding * 2, color: fColor.darkText[1].toHexString() }}>{this.props.title}</div>
-                <div style={{ textAlign: 'left', position: 'absolute', left: 0, bottom: 0, color: fColor.darkText[0].toHexString(), fontSize: `${this.imageSize/2}px`}}>{this.props.value}</div>
+                <div style={{ textAlign: 'left', position: 'absolute', left: 0, bottom: 0, color: fColor.darkText[0].toHexString(), fontSize: `${this.imageSize / 2}px` }}>{this.props.value}</div>
             </div>
         </div>
     }
