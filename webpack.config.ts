@@ -5,7 +5,7 @@ const MONACO_DIR = path.resolve(__dirname, './node_modules/monaco-editor');
 const config: Configuration = {
 
     mode: 'development',
-    devtool: 'eval-source-map',
+    devtool: 'source-map',
     entry: {
         lib: {
             import: ['react', 'react-dom']
