@@ -10,9 +10,13 @@ const config: Configuration = {
         lib: {
             import: ['react', 'react-dom']
         },
-        
+
         project1Bundle: {
             import: './src/Project1/Project1Index.tsx',
+            dependOn: 'lib'
+        },
+        project2Bundle: {
+            import: './src/Project2/Project2Index.tsx',
             dependOn: 'lib'
         }
     },
@@ -25,7 +29,7 @@ const config: Configuration = {
                     configFile: "tsconfig.json"
                 }
             }],
-            exclude: /node_modules/, 
+            exclude: /node_modules/,
         }],
     },
     resolve: {

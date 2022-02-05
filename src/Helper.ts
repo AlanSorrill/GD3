@@ -38,6 +38,7 @@ declare global {
     }
     var fColor: FColorDirectory
 }
+
 window.fColor = new FColorDirectory();
 export { fColor }
 if (typeof String.prototype.replaceAll == 'undefined') {

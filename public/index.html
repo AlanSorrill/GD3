@@ -20,13 +20,46 @@
             -ms-user-select: none;
             user-select: none;
         }
+        
+        .noBar::-webkit-scrollbar {
+            width: 0 !important
+        }
+        
+        .noBar {
+            overflow: -moz-scrollbars-none;
+        }
+        
+        .noBar {
+            -ms-overflow-style: none;
+        }
     </style>
 </head>
 
 <body>
     <div id='root' style='position: absolute; left: 0px; right: 0px; top: 0px; bottom: 0px'></div>
     <script src="packed/lib.js"></script>
-    <script src="packed/project1Bundle.js"></script>
+    <script id="bundleScript"></script>
+    <script>
+        let searchParams = new URLSearchParams(window.location.search)
+        let project = searchParams.get('project');
+        if (project == null) {
+            project = 1;
+        }
+        switch (typeof project) {
+            case 'undefined':
+                project = 1
+                break;
+            case 'string':
+                project = Number(project)
+            case 'number':
+
+        }
+        if (project < 0 && project > 2) {
+            project = 1;
+        }
+        let scriptNode = document.getElementById('bundleScript')
+        scriptNode.src = `packed/project${project}Bundle.js`
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
