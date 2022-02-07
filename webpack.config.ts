@@ -23,13 +23,17 @@ const config: Configuration = {
     module: {
         rules: [{
             test: /\.tsx?$/,
-            use: [{
-                loader: 'ts-loader',
-                options: {
-                    configFile: "tsconfig.json"
-                }
-            }],
+            use: [
+                {
+                    loader: 'ts-loader',
+                    options: {
+                        configFile: "tsconfig.json"
+                    }
+                }],
             exclude: /node_modules/,
+        }, {
+            test: /\.css$/i,
+            use: ["style-loader", "css-loader"],
         }],
     },
     resolve: {

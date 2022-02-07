@@ -28,19 +28,65 @@ export class Device {
         return (window.innerWidth < window.innerHeight) ? 'vertical' : 'horizontal'
     }
 }
+export type OptFunc<T> = T | (()=>T)
+export function evalOptionalFunc<T>(input: OptFunc<T>, def: T = null): T {
+    if (input == null || input == undefined) {
+        return def;
+    }
+    if (typeof input == 'function') {
+        return (input as (() => T))();
+    }
 
 
+    return input;
+}
+export function CombineCopyObjects<A,B>(a: A, b: B): A & B{
+    let out: A & B = {} as any;
+    Object.entries(a).forEach((value: [string,any])=>{
+        out[value[0]] = value[1];
+    })
+    Object.entries(b).forEach((value: [string,any])=>{
+        out[value[0]] = value[1];
+    })
+    return out;
+}
 
 declare global {
 
     interface String {
         replaceAll(a: string, b: string): string;
     }
+    interface Array<T> {
+        mapWhile<B>(predicate: (value: T)=>boolean, transform: (value: T)=>B): B[]
+        forMap<B>(transform: (value: T)=>B,startValue: OptFunc<number>, predicate: (index: number, arr: this)=>boolean, update: OptFunc<number>): B[]
+    }
     var fColor: FColorDirectory
 }
 
 window.fColor = new FColorDirectory();
 export { fColor }
+if(typeof Array.prototype.mapWhile == 'undefined'){
+    Array.prototype.mapWhile = function (predicate, transform){
+        let out = []
+        for(let i = 0;i<this.length;i++){
+            if(predicate(this[i])){
+                out.push(transform(this[i]))
+            }
+        }
+        return out;
+    }
+}
+if(typeof Array.prototype.forMap == 'undefined'){
+    Array.prototype.forMap = function (transform, startValue, predicate, update = 1){
+        let out = []
+        for(let i = evalOptionalFunc(startValue);predicate(i, this);i+=evalOptionalFunc(update)){
+
+                out.push(transform(this[i]))
+
+        }
+        return out;
+    }
+}
 if (typeof String.prototype.replaceAll == 'undefined') {
     String.prototype.replaceAll = function (a: string, b: string) {
         return this.split(a).join(b);
