@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { Device } from '../Helper'
+import { Device, ImportGoogleFont } from '../Helper'
 interface Project1Root_State {
     width: number
     height: number
@@ -46,7 +46,7 @@ export class Project1Root extends React.Component<any, Project1Root_State> {
 }
 
 
-
+ImportGoogleFont('Varela+Round')
 export class StudentTradingCard extends React.Component {
 
     overHang: number = 24;
@@ -66,7 +66,7 @@ export class StudentTradingCard extends React.Component {
     ]
     render() {
         return <div style={{ backgroundColor: '#F05F5F', width: '100%', height: '100%', fontFamily: "'Varela Round', sans-serif", color: 'white', paddingBottom: `${this.sidePadding * 2}px` }}>
-            <div style={{ height: 250, width: '100%', position: 'relative', backgroundSize: 'cover', backgroundImage: "url('project1/backgroundOpt.png')" }}>
+            <div style={{ height: 250, width: '100%', position: 'relative', backgroundSize: 'cover', backgroundImage: "url('project1/backgroundOpt.jpg')" }}>
 
                 <div style={{ width: 256, height: 256, position: 'absolute', bottom: 0, left: '50%', transform: `translate(-50%, ${this.overHang}px)`, backgroundSize: '100%', backgroundImage: "url('project1/alanSquareOpt.jpg')", borderRadius: 24 }}>
 

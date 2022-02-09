@@ -1,4 +1,6 @@
 import { FColorDirectory } from "./FColor";
+import React, { DOMAttributes, DOMElement } from 'react';
+import ReactDom from 'react-dom'
 
 export type DeviceType = 'phone' | 'tablet' | 'desktop'
 export type Orientation = 'vertical' | 'horizontal'
@@ -28,7 +30,7 @@ export class Device {
         return (window.innerWidth < window.innerHeight) ? 'vertical' : 'horizontal'
     }
 }
-export type OptFunc<T> = T | (()=>T)
+export type OptFunc<T> = T | (() => T)
 export function evalOptionalFunc<T>(input: OptFunc<T>, def: T = null): T {
     if (input == null || input == undefined) {
         return def;
@@ -40,12 +42,12 @@ export function evalOptionalFunc<T>(input: OptFunc<T>, def: T = null): T {
 
     return input;
 }
-export function CombineCopyObjects<A,B>(a: A, b: B): A & B{
+export function CombineCopyObjects<A, B>(a: A, b: B): A & B {
     let out: A & B = {} as any;
-    Object.entries(a).forEach((value: [string,any])=>{
+    Object.entries(a).forEach((value: [string, any]) => {
         out[value[0]] = value[1];
     })
-    Object.entries(b).forEach((value: [string,any])=>{
+    Object.entries(b).forEach((value: [string, any]) => {
         out[value[0]] = value[1];
     })
     return out;
@@ -57,31 +59,31 @@ declare global {
         replaceAll(a: string, b: string): string;
     }
     interface Array<T> {
-        mapWhile<B>(predicate: (value: T)=>boolean, transform: (value: T)=>B): B[]
-        forMap<B>(transform: (value: T)=>B,startValue: OptFunc<number>, predicate: (index: number, arr: this)=>boolean, update: OptFunc<number>): B[]
+        mapWhile<B>(predicate: (value: T) => boolean, transform: (value: T) => B): B[]
+        forMap<B>(transform: (value: T, index: number) => B, startValue: OptFunc<number>, predicate: (index: number, arr: this) => boolean, update: OptFunc<number>): B[]
     }
     var fColor: FColorDirectory
 }
 
 window.fColor = new FColorDirectory();
 export { fColor }
-if(typeof Array.prototype.mapWhile == 'undefined'){
-    Array.prototype.mapWhile = function (predicate, transform){
+if (typeof Array.prototype.mapWhile == 'undefined') {
+    Array.prototype.mapWhile = function (predicate, transform) {
         let out = []
-        for(let i = 0;i<this.length;i++){
-            if(predicate(this[i])){
+        for (let i = 0; i < this.length; i++) {
+            if (predicate(this[i])) {
                 out.push(transform(this[i]))
             }
         }
         return out;
     }
 }
-if(typeof Array.prototype.forMap == 'undefined'){
-    Array.prototype.forMap = function (transform, startValue, predicate, update = 1){
+if (typeof Array.prototype.forMap == 'undefined') {
+    Array.prototype.forMap = function (transform, startValue, predicate, update = 1) {
         let out = []
-        for(let i = evalOptionalFunc(startValue);predicate(i, this);i+=evalOptionalFunc(update)){
+        for (let i = evalOptionalFunc(startValue); predicate(i, this); i += evalOptionalFunc(update)) {
 
-                out.push(transform(this[i]))
+            out.push(transform(this[i], i))
 
         }
         return out;
@@ -91,4 +93,40 @@ if (typeof String.prototype.replaceAll == 'undefined') {
     String.prototype.replaceAll = function (a: string, b: string) {
         return this.split(a).join(b);
     };
+}
+
+export function RenderIntoRoot<T extends Element>(element: React.FunctionComponentElement<T> | React.FunctionComponentElement<T>[]) {
+    let mainContainer = document.getElementById('root')
+    if (!mainContainer) {
+        mainContainer = document.createElement('div');
+        document.body.append(mainContainer);
+        while (document.body.children.length > 0) {
+            document.body.children.item(0).remove();
+        }
+        mainContainer.style.position = 'absolute'
+        mainContainer.style.left = '0px'
+        mainContainer.style.right = '0px'
+        mainContainer.style.top = '0px'
+        mainContainer.style.bottom = '0px'
+    }
+    document.body.style.overflowY = 'hidden'
+    mainContainer.style.overflowY = 'hidden'
+    ReactDom.render(element, mainContainer);
+}
+export function ImportGoogleFont(familyName: string) {
+    let id = familyName + 'GoogleFont'
+    if (document.getElementById(id)) {
+        console.log('skipping font import')
+        return;
+    }
+    console.log(`Importing ${familyName}`)
+    let elem = document.createElement('link');
+    elem.id = id;familyName+'GoogleFont'
+    elem.rel = 'stylesheet'
+    elem.href = `https://fonts.googleapis.com/css2?family=${familyName}&display=swap`
+    document.head.appendChild(elem);
+}
+
+export function GenerateImage() {
+    let canvas = new OffscreenCanvas(256, 256);
 }

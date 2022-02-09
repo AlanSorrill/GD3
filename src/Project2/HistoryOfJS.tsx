@@ -1,6 +1,7 @@
 import React from "react";
 import { FColorDirectory } from "../FColor";
-import { CombineCopyObjects } from "../Helper";
+import { CombineCopyObjects, ImportGoogleFont } from "../Helper";
+import { ReactCanvas } from "../ReactCanvas";
 import "./HistoryOfJs.css"
 if (typeof fColor == 'undefined') {
     window.fColor = new FColorDirectory();
@@ -15,6 +16,7 @@ export interface Project2Root_State {
     scrollAmount: number
     bannerTransition: number
 }
+ImportGoogleFont('Prompt')
 export class Project2Root extends React.Component<Project2Root_Props, Project2Root_State> {
     bannerHeight: number = 200;
     bannerRef: React.RefObject<HTMLDivElement>;
@@ -32,13 +34,20 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
 
     banner() {
         return <div ref={this.bannerRef} style={{ height: this.bannerHeight, backgroundImage: 'url("project2/greenStripeBackground.png")', display: 'flex', position: 'relative' }}>
+            {/* <ReactCanvas draw={function (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ff0000'
+                ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2)
+            }} style={{position: 'absolute', width: '100%', height: '100%'}}/> */}
             <div style={{
                 fontSize: this.bannerHeight * 0.3,
                 lineHeight: `${this.bannerHeight * 0.3}px`,
-                margin: this.bannerHeight * 0.2
+                margin: this.bannerHeight * 0.2,
+                color: fColor.green.darken4.toHexString()
             }}>History of<br />Javascript</div>
             <img src='project2\brendanEich02.png' style={{ position: 'absolute', right: 0, height: this.bannerHeight }}></img>
         </div>
+
     }
 
 
@@ -50,7 +59,7 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
         return true
     }
     render(): React.ReactNode {
-        return <div style={{ overflowY: 'scroll', height: '100vh' }} className='noBar' onScroll={this.onScroll.bind(this)}>
+        return <div style={{ overflowY: 'scroll', height: '100vh', fontFamily: 'Prompt' }} className='noBar' onScroll={this.onScroll.bind(this)}>
 
             {this.banner()}
 
@@ -77,7 +86,7 @@ export interface HistoryOfJSContent_Props {
     bannerTransition: number
 }
 export class HistoryOfJSContent extends React.Component<HistoryOfJSContent_Props, HistoryOfJSContent_State> {
-    sections: Section[] = [{ name: '1995' }, { name: 'Lost' }, , { name: '2008' }, { name: '2009' }, { name: '2013' }, { name: '2015' }, { name: '2020' }]
+    sections: Section[] = [{ name: '1995' }, { name: 'Lost Decade' }, { name: '2008' }, { name: '2009' }, { name: '2013' }, { name: '2015' }, { name: '2020' }]
     contentContainerRef: React.RefObject<HTMLDivElement>;
     bannerContainerRef: React.RefObject<HTMLDivElement>;
     timelineContainerRef: React.RefObject<HTMLDivElement>;
@@ -123,7 +132,7 @@ export class HistoryOfJSContent extends React.Component<HistoryOfJSContent_Props
         if (!this.contentContainerRef.current) {
             return 0;
         }
-        return this.props.bannerTransition > 0 ? 0 : (this.contentContainerRef.current?.getBoundingClientRect().top) * -1 ?? 0
+        return Math.max(0, (this.contentContainerRef.current?.getBoundingClientRect().top + this.props.timelineThickness))
     }
     private get calcHeight() {
 
@@ -137,19 +146,40 @@ export class HistoryOfJSContent extends React.Component<HistoryOfJSContent_Props
         return window.innerHeight
     }
     private bannerSectionElements() {
-        if(!this.bannerContainerRef.current){
+        if (!this.bannerContainerRef.current) {
             return <div>No Banner</div>
         }
         let bannerBox = this.bannerContainerRef.current.getBoundingClientRect()
-        return <div>{this.sections.forMap(
-            (section: Section) => (<SectionDisplay key={section?.name} sectionData={section} />), 
+        let aWidth = (bannerBox.width - this.props.timelineThickness) / this.sections.length
+        return <div style={{ position: 'relative',height: this.props.timelineThickness }}>{this.sections.forMap(
+            (section: Section, index: number) => (<SectionDisplay key={section?.name} sectionData={section} style={{
+                position: 'absolute',
+                width: aWidth,
+                left: aWidth * index,
+                top: 0,
+                bottom: 0
+            }} />),
             0, (index: number, arr: Section[]) => (index < arr.length), 1)}</div>
+    }
+    private calcLeft() {
+        if (!this.contentContainerRef.current) {
+            let ths = this;
+            setTimeout(() => { ths.setState({ scrollDistance: 0 }) }, 1)
+            return 0;
+        }
+        let rect = this.contentContainerRef.current?.getBoundingClientRect();
+        return rect.right - this.props.timelineThickness
+    }
+
+    private get alpha() {
+        return 1 - this.props.bannerTransition
     }
     render() {
 
-        return <div style={CombineCopyObjects(this.props.style, { backgroundColor: 'purple', position: 'relative' })} ref={this.contentContainerRef} onScroll={this.onScroll.bind(this)}>
-            <div style={{ width: `${(1 - this.props.bannerTransition) * 100}%`, height: this.props.timelineThickness, backgroundColor: 'red' }} ref={this.bannerContainerRef}>
-                {this.bannerSectionElements()}
+        return <div style={CombineCopyObjects(this.props.style, { backgroundColor: 'purple', position: 'relative',height: this.props.timelineThickness })} ref={this.contentContainerRef} onScroll={this.onScroll.bind(this)}>
+            <div style={{ height: this.props.timelineThickness, backgroundColor: 'blue', position: 'relative' }} ref={this.bannerContainerRef}>
+                <div style={{ width: `${(this.alpha) * 100}%`, backgroundColor: 'red', height: this.props.timelineThickness}}></div>
+                <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: this.props.timelineThickness }}>{this.bannerSectionElements()}</div>
             </div>
             <div style={{ marginRight: this.props.timelineThickness, backgroundColor: 'green' }}>
 
@@ -160,7 +190,7 @@ export class HistoryOfJSContent extends React.Component<HistoryOfJSContent_Props
                     </div>
                 })}
             </div>
-            <div style={{ position: 'absolute', top: this.calcTop, right: 0, bottom: this.calcBottom, width: this.props.timelineThickness, backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat', backgroundImage: 'url("project2/test.png")' }} ref={this.timelineContainerRef}>
+            <div style={{ position: 'fixed', top: this.calcTop, left: this.calcLeft(), bottom: 0, width: this.props.timelineThickness, backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat', backgroundImage: 'url("project2/test.png")' }} ref={this.timelineContainerRef}>
 
             </div>
             {/* <div style={{display: 'flex'}}>{this.sections.map((section: Section) => (<div>
@@ -172,13 +202,14 @@ export class HistoryOfJSContent extends React.Component<HistoryOfJSContent_Props
 
 export interface SectionDisplay_Props {
     sectionData: Section
+    style: React.CSSProperties
 }
 export interface SectionDisplay_State { }
 export class SectionDisplay extends React.Component<SectionDisplay_Props, SectionDisplay_State>{
     render() {
-        return <div style={{ display: 'flex', flexDirection: 'column' }}>
+        return <div style={CombineCopyObjects({ display: 'flex', flexDirection: 'column', flexGrow: 1, width: '100%', height: '100%', backgroundColor: 'purple'}, this.props.style)}>
             <div style={{ flexGrow: 1 }}></div>
-            <div style={{ flexGrow: 2 }}>{this.props.sectionData?.name}</div>
+            <div style={{ flexGrow: 2 , textAlign: 'center'}}>{this.props.sectionData?.name}</div>
             <div style={{ flexGrow: 1 }}></div>
         </div>
     }

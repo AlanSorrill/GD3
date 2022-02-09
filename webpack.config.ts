@@ -18,6 +18,10 @@ const config: Configuration = {
         project2Bundle: {
             import: './src/Project2/Project2Index.tsx',
             dependOn: 'lib'
+        },
+        project3Bundle: {
+            import: './src/Project2/Project2Pallet.tsx',
+            dependOn: 'lib'
         }
     },
     module: {
