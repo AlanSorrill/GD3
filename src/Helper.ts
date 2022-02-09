@@ -94,7 +94,9 @@ if (typeof String.prototype.replaceAll == 'undefined') {
         return this.split(a).join(b);
     };
 }
-
+export function lerp(start: number, end: number, alpha: number){
+    return start + (end - start) * alpha
+}
 export function RenderIntoRoot<T extends Element>(element: React.FunctionComponentElement<T> | React.FunctionComponentElement<T>[]) {
     let mainContainer = document.getElementById('root')
     if (!mainContainer) {
