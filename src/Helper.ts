@@ -29,6 +29,16 @@ export class Device {
     static getOrientation(): Orientation {
         return (window.innerWidth < window.innerHeight) ? 'vertical' : 'horizontal'
     }
+    static switch(desktop: number, tablet: number, phone: number) {
+        switch (this.getType()) {
+            case 'desktop':
+                return desktop;
+            case 'tablet':
+                return tablet;
+            case 'phone':
+                return phone;
+        }
+    }
 }
 export type OptFunc<T> = T | (() => T)
 export function evalOptionalFunc<T>(input: OptFunc<T>, def: T = null): T {
@@ -94,7 +104,7 @@ if (typeof String.prototype.replaceAll == 'undefined') {
         return this.split(a).join(b);
     };
 }
-export function lerp(start: number, end: number, alpha: number){
+export function lerp(start: number, end: number, alpha: number) {
     return start + (end - start) * alpha
 }
 export function RenderIntoRoot<T extends Element>(element: React.FunctionComponentElement<T> | React.FunctionComponentElement<T>[]) {
@@ -123,7 +133,7 @@ export function ImportGoogleFont(familyName: string) {
     }
     console.log(`Importing ${familyName}`)
     let elem = document.createElement('link');
-    elem.id = id;familyName+'GoogleFont'
+    elem.id = id; familyName + 'GoogleFont'
     elem.rel = 'stylesheet'
     elem.href = `https://fonts.googleapis.com/css2?family=${familyName}&display=swap`
     document.head.appendChild(elem);

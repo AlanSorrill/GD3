@@ -1,19 +1,19 @@
 
 export class FColorSwath {
-    constructor(data: any) {
-        this.lighten4 = FColor.fromHex(data['100']);
-        this.lighten3 = FColor.fromHex(data['200']);
-        this.lighten2 = FColor.fromHex(data['300']);
-        this.lighten1 = FColor.fromHex(data['400']);
-        this.base = FColor.fromHex(data['500']);
-        this.darken1 = FColor.fromHex(data['600']);
-        this.darken2 = FColor.fromHex(data['700']);
-        this.darken3 = FColor.fromHex(data['800']);
-        this.darken4 = FColor.fromHex(data['900']);
-        this.accent1 = FColor.fromHex(data['a100'] ?? '#000');
-        this.accent2 = FColor.fromHex(data['a200'] ?? '#000');
-        this.accent3 = FColor.fromHex(data['a400'] ?? '#000');
-        this.accent4 = FColor.fromHex(data['a700'] ?? '#000');
+    constructor(data: any, swatchName: string) {
+        this.lighten4 = FColor.fromHex(data['100'], swatchName, 'lighten4');
+        this.lighten3 = FColor.fromHex(data['200'], swatchName, 'lighten3');
+        this.lighten2 = FColor.fromHex(data['300'], swatchName, 'lighten2');
+        this.lighten1 = FColor.fromHex(data['400'], swatchName, 'lighten1');
+        this.base = FColor.fromHex(data['500'], swatchName, 'base');
+        this.darken1 = FColor.fromHex(data['600'], swatchName, 'darken1');
+        this.darken2 = FColor.fromHex(data['700'], swatchName, 'darken2');
+        this.darken3 = FColor.fromHex(data['800'], swatchName, 'darken3');
+        this.darken4 = FColor.fromHex(data['900'], swatchName, 'darken4');
+        this.accent1 = FColor.fromHex(data['a100'] ?? '#000', swatchName, 'accent1');
+        this.accent2 = FColor.fromHex(data['a200'] ?? '#000', swatchName, 'accent2');
+        this.accent3 = FColor.fromHex(data['a400'] ?? '#000', swatchName, 'accent3');
+        this.accent4 = FColor.fromHex(data['a700'] ?? '#000', swatchName, 'accent4');
     }
     lighten5: FColor;
     lighten4: FColor;
@@ -36,15 +36,18 @@ export class FColor {
     private gg: number;
     private rr: number;
     total: number = 255;
-    constructor(r: number, g: number, b: number, a: number, total: number = 255) {
+    name: string = null
+    swatchName: string = null;
+    constructor(r: number, g: number, b: number, a: number, total: number = 255, name: string = null, swatchName: string = null) {
         this.rr = r;
         this.gg = g;
         this.bb = b;
         this.aa = a;
         this.total = total;
-
+        this.name = name;
+        this.swatchName = swatchName;
     }
-    static fromHex(colorHex: string) {
+    static fromHex(colorHex: string, swatchName: string, name: string) {
         colorHex = colorHex.replaceAll('#', '').replaceAll(' ', '');
 
         let r = parseInt(colorHex.substr(0, 2), 16);
@@ -52,7 +55,11 @@ export class FColor {
         let b = parseInt(colorHex.substr(4, 2), 16);
 
         let a = colorHex.length > 6 ? parseInt(colorHex.substr(6, 2), 16) : -1;
-        return new FColor(r, g, b, a);
+        return new FColor(r, g, b, a, 255, name, swatchName);
+    }
+    
+    get hoverCssClass(){
+        return `hover-${this.swatchName}-${this.name}`
     }
     lastHex: string = null;
     setHex(colorHex: string) {
@@ -432,8 +439,8 @@ export class FColorDirectory {
     white: FColor;
     iowaGold: FColor;
     darkMode: [FColor, FColor, FColor, FColor, FColor, FColor, FColor, FColor, FColor, FColor, FColor, FColor] = [null, null, null, null, null, null, null, null, null, null, null, null]
-    lightText: [FColor, FColor] = [FColor.fromHex('#a8a8a8'), FColor.fromHex('#E0E0E0')]
-    darkText: [FColor, FColor] = [FColor.fromHex('#373737'), FColor.fromHex('#898989')]
+    lightText: [FColor, FColor] = [FColor.fromHex('#a8a8a8', 'lightText', '0'), FColor.fromHex('#E0E0E0', 'lightText', '1')]
+    darkText: [FColor, FColor] = [FColor.fromHex('#373737', 'darkText', '0'), FColor.fromHex('#898989', 'darkText', '1')]
     cssElement: HTMLStyleElement = null;
     public static fColor: FColorDirectory = null;//singlton instance
 
@@ -458,7 +465,7 @@ export class FColorDirectory {
             }
             let out = `#${p}${p}${p}`
             //console.log(`Built dark mode color ${s} for index ${i}: ${out} `)
-            return FColor.fromHex(out);
+            return FColor.fromHex(out, 'darkMode', i + '');
         }
         let darkModeColorCount = 11;
         if (typeof document != 'undefined') {
@@ -487,7 +494,7 @@ export class FColorDirectory {
 
             if (typeof currentColor == 'object') {
                 colorLabels = Object.keys(currentColor);
-                this[colorNames[i]] = new FColorSwath(FColorDirectory.materialColors[colorNames[i]]);
+                this[colorNames[i]] = new FColorSwath(FColorDirectory.materialColors[colorNames[i]], colorNames[i]);
                 for (var j = 0; j < colorLabels.length; j++) {
                     switch (colorLabels[j]) {
                         case "50":
@@ -536,18 +543,19 @@ export class FColorDirectory {
                             englishLabel = colorLabels[j];
                     }
                     //console.log("[" + i + ", " + j + "] Mapping colors." + colorNames[j] + "." + englishLabel + " = " + currentColor[colorLabels[j]]);
-                    this[colorNames[i]][englishLabel] = FColor.fromHex(currentColor[colorLabels[j]]);
+                    this[colorNames[i]][englishLabel] = FColor.fromHex(currentColor[colorLabels[j]], colorNames[i], englishLabel);
                     this.addCss(`.${colorNames[i]}-${englishLabel} {background-color: ${currentColor[colorLabels[j]]}}`, false);
                     this.addCss(`.hover-${colorNames[i]}-${englishLabel}:hover {background-color: ${currentColor[colorLabels[j]]} !important}`, false);
                 }
             } else {
-                this[colorNames[i]] = FColor.fromHex(currentColor ?? "#ff00ff");
+                this[colorNames[i]] = FColor.fromHex(currentColor ?? "#ff00ff", null, colorNames[i]);
                 this.addCss(`.${colorNames[i]}-${englishLabel} {background-color: ${currentColor ?? "#ff00ff"}}`, false);
                 this.addCss(`.hover-${colorNames[i]}-${englishLabel}:hover {background-color: ${currentColor ?? "#ff00ff"} !important}`, false);
             }
         }
         this.updateProceduralCss();
     }
+
     createCssHoverClass(className: string, hoverBackground: FColor) {
         //this.addCss(`.${className} {background-color: ${hoverBackground.toHexString()} !important}`)
         this.addCss(`.${className}:hover {background-color: ${hoverBackground.toHexString()} !important}`)
