@@ -2,6 +2,29 @@ h1 {
     margin-top: 0px
 }
 
+html {
+    overflow: hidden;
+    height: 100%;
+}
+
+
+/* #crawl {
+    color: #f5c91c;      // yellow color for all text 
+    
+    position: absolute;  // fixed in place
+    width: 110%;         // a bit broader than screen
+    left: -5%;           // symmetric offset to center it in
+    bottom: -5%;         // bottom anchored just below screen edge
+    height: 200%;        // twice as high as screen
+    overflow: hidden;    // don't show scroll bars
+    // the 3D part  
+   
+    // plane origin at center of bottom edge
+    transform-origin: 50% 100%; 
+    // rotate around x axis by 45 degrees (pushing it over and in)
+    transform: rotate3d(1, 0, 0, 45deg);
+  } */
+
 
 /* .navBtn:hover {
     background-color: #ffc107 !important;

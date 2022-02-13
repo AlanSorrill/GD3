@@ -1,5 +1,5 @@
 import React from "react";
-import { FColorDirectory } from "../FColor";
+import { FColor, FColorDirectory, Section, Section_Http, Section_Prehistoric } from "../Imports";
 import { CombineCopyObjects, Device, ImportGoogleFont, lerp } from "../Helper";
 import { ReactCanvas } from "../ReactCanvas";
 
@@ -8,26 +8,11 @@ if (typeof fColor == 'undefined') {
     window.fColor = new FColorDirectory();
 }
 
-export type SectionType = 'JustParagraph'
-export class Section {
-    name: string
-    render: (ths: Section) => React.ReactNode;
-    titleElement: React.RefObject<HTMLHeadingElement> = React.createRef()
-    constructor(name: string, render: (ths: Section) => React.ReactNode) {
-        this.name = name,
-            this.render = render;
-    }
-    scrollIntoView(){
-        if(!this.titleElement.current){
-            return;
-        }
-        this.titleElement.current.scrollIntoView({
-            behavior: 'smooth'
-        })
-    }
-}
 
 
+
+ImportGoogleFont('Prompt')
+ImportGoogleFont('Roboto+Mono')
 
 export interface Project2Root_Props { }
 
@@ -35,7 +20,6 @@ export interface Project2Root_State {
     scrollAmount: number
     navTransition: number
 }
-ImportGoogleFont('Prompt')
 export class Project2Root extends React.Component<Project2Root_Props, Project2Root_State> {
     navHeight: number = 50;
     bannerHeight: number = 200
@@ -45,30 +29,16 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
     navContainerRef: React.RefObject<HTMLDivElement>;
     timelineContainerRef: React.RefObject<HTMLDivElement>;
 
-    sections: Section[] = [
-        new Section('1995', () => (<div>
-            <div>
-                The year was 1995, the web browser had only existed for 4 years. Image support was only 2 years old. A new browser, Netscape2, was in development. The goal of this new browser: an interactive web. Netscape had partnered with Sun Microsystems to embed the Java programming language in their new browser.
-            </div>
-            <br />
-            <div>
-                Java is an Object Oriented, strict typed, partially compiled language. It was selected because unlike other compiled languages, it compiles into a cross platform binary format. Unfortunately, Java would not have access to the HTML elements on the page, and would be “stuck in a box”, only able to draw in one rectangle. It’s versions were also very strict, requiring users to constantly update their Java VM. Netscape wanted a “companion” language which would glue the Java applets to the webpage. This language would be written in the same files as the HTML and CSS. They also wanted this language to have an easier learning curve than Java.
-            </div>
-            <br />
-            <div>
-                Brendan Eich was hired to implement such a language. His bosses wanted it to look like Java and be easy to learn, while Brendan was interested in functional research languages. The result was a single threaded, dynamically typed, C based, interpreted programming language. It’s operators and variable declaration looked a lot like Java, but it had support for first class functions. Its dynamic typing system had very few types: number, string, object, and function. It’s objects were essentially key-value maps with prototypical inheritance. It’s single thread operated on an asynchronous event loop. Brendan was tasked with creating this language in 10 days as Netscape was aware that Microsoft was building a browser, and they valued their first mover advantage.
-            </div>
-        </div>)),
-        new Section('Lost Decade', () => (<div></div>)),
-        new Section('2008', () => (<div></div>)),
-        new Section('2009', () => (<div></div>)),
-        new Section('2013', () => (<div></div>)),
-        new Section('2015', () => (<div></div>)),
-        new Section('2020', () => (<div></div>)),
-    ]
+
+    sections: [Section_Prehistoric, Section_Http]
 
     constructor(props: Project2Root_Props) {
         super(props);
+        this.sections = [
+            new Section_Prehistoric(this),
+            new Section_Http(this)
+        ]
+        this.sections.forEach((section: Section, index: number) => { section.index = index })
         this.state = { scrollAmount: 0, navTransition: 1 }
         this.bannerRef = React.createRef();
         this.contentContainerRef = React.createRef();
@@ -76,6 +46,28 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
         this.timelineContainerRef = React.createRef();
     }
 
+
+
+    get currentSection() {
+        if (!this.bannerRef.current) {
+            return 0
+        }
+        let boundBox = this.bannerRef.current.getBoundingClientRect()
+        if (boundBox.bottom > 0) {
+            return 0 - ((boundBox.bottom / boundBox.height))
+        }
+        for (let i = 0; i < this.sections.length; i++) {
+            if (!this.sections[i].containerElement.current) {
+                return -1;//shouldn't happen
+            }
+            boundBox = this.sections[i].containerElement.current.getBoundingClientRect();
+            if (boundBox.bottom > 0) {
+                return (1 - boundBox.bottom / boundBox.height).clamp(0, 1) + i
+            }
+        }
+
+
+    }
 
     get col12() {
         return window.innerWidth
@@ -157,7 +149,14 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
 
 
     private get alpha() {
-        return 1 - this.state.navTransition
+        if (this.sections[0].containerElement.current) {
+            let rect = this.sections[0].containerElement.current.getBoundingClientRect()
+            let navAlpha = this.sections[0].getNavToSideAlpha()//this.currentSection.alphaInRange(0.95, 1, true)
+            // console.log(navAlpha);
+            return navAlpha;
+            // return 1 - (rect.bottom / window.innerHeight).clamp(0, 1)
+        }
+        return 0
     }
     getTextSize() {
         return this.navHeight / 3
@@ -188,14 +187,27 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
         let clientRect = this.bannerRef.current.getBoundingClientRect();
         let navTransition = Math.max(0, clientRect.bottom / clientRect.height)
         this.setState({ scrollAmount: 0, navTransition: navTransition })
-        console.log(navTransition)
+        // console.log(navTransition)
         return true
     }
-    private getContentWidth() {
-        return Device.switch(this.col10, this.col12, this.col12);
+
+    getNavOffset() {
+        if (!this.bannerRef.current) {
+            return 0
+        }
+        let rect = this.bannerRef.current.getBoundingClientRect()
+        if (rect.bottom < 0) {
+            return 0;
+        }
+        return rect.top + rect.height;
     }
+
+    mainContainerRef: React.RefObject<HTMLDivElement> = React.createRef();
     render(): React.ReactNode {
-        return <div style={{ overflowY: 'scroll', height: '100vh', fontFamily: 'Prompt', backgroundColor: fColor.green.darken4.toHexString() }} className='noBar' onScroll={this.onScroll.bind(this)}>
+        let currentSectionAlpha = this.currentSection;
+        return <div ref={this.mainContainerRef} style={{ overflowY: 'scroll', height: '100vh', width: '100vw', fontFamily: 'Prompt', }} className='noBar' onScroll={this.onScroll.bind(this)}>
+
+
 
             {this.banner()}
 
@@ -206,14 +218,14 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
 
 
 
-                <div style={{ width: this.getContentWidth(), position: 'relative', height: this.navHeight }} ref={this.contentContainerRef} onScroll={this.onScroll.bind(this)}>
-                    <div style={{ height: this.navHeight, position: 'relative', width: this.getContentWidth() }} ref={this.navContainerRef}>
+                <div style={{ width: this.col12, position: 'relative', height: this.navHeight }} ref={this.contentContainerRef} onScroll={this.onScroll.bind(this)}>
+                    <div style={{ height: this.navHeight, position: 'relative', width: this.col12 }} ref={this.navContainerRef}>
 
                         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: this.navHeight }}>
-                            <div style={{ position: 'relative', width: this.getContentWidth(), height: '100%', overflowX: 'hidden', zIndex: 2 }}>
+                            <div style={{ position: 'fixed', width: this.col12, height: this.navHeight, top: this.getNavOffset(), overflowX: 'hidden', zIndex: 2 }}>
                                 {this.calcNavPositions()[0].map((value: [section: Section, pos: number, width: number]) => (
 
-                                    <SectionDisplay key={`${value[0].name} `} sectionData={value[0]} style={{
+                                    <SectionDisplay key={`${value[0].name} `} currentSection={currentSectionAlpha} sectionData={value[0]} style={{
                                         position: 'absolute',
                                         lineHeight: `${this.getTextSize()}px`,
                                         fontSize: this.getTextSize(),
@@ -229,14 +241,14 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
                         </div>
                     </div>
 
-                    <div style={{ marginLeft: (Device.isTabletOrPhone() ? 0 : this.col1), marginRight: (Device.isTabletOrPhone() ? this.navHeight : 0) }}>
+                    <div style={{ position: 'relative', top: 0 - this.navHeight, backgroundColor: fColor.purple.accent1.toHexString() }}>
 
                         {this.sections.map((section: Section, index: number) => {
-                            return <div key={index} >
-                                <h1 style={{ color: fColor.green.lighten4.toHexString() }} ref={section.titleElement} >{section.name}</h1>
-                                {section.render(section)}
+                            return <div key={index} ref={section.containerElement}  >
+                                {/* <h1 style={{ color: fColor.green.lighten4.toHexString() }} ref={section.titleElement} >{section.name}</h1> */}
+                                {section.render(currentSectionAlpha)}
                                 {/* <div style={{ padding: 16, backgroundColor: fColor.green.lighten2.toHexString() }}>{this.bodyText(3)}</div> */}
-                                <br style={{ height: this.col1 }} />
+                                {/* <br style={{ height: this.col1 }} /> */}
                             </div>
                         })}
                     </div>
@@ -247,7 +259,7 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
 
                                 {this.calcNavPositions()[1].map((value: [section: Section, pos: number, width: number]) => (
 
-                                    <SectionDisplay  key={`${value[0].name}`} sectionData={value[0]} style={{
+                                    <SectionDisplay key={`${value[0].name}`} currentSection={currentSectionAlpha} sectionData={value[0]} style={{
                                         position: 'absolute',
                                         width: value[2],
                                         left: value[1],
@@ -265,7 +277,18 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
                 {/* {Device.isPhone ? null : <div style={{ width: this.col1 }}></div>} */}
             </div>
 
+            <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 1000 }}>{currentSectionAlpha.toFixed(2)}</div>
         </div >
+    }
+    componentDidMount(): void {
+        // this.mainContainerRef.current.addEventListener('scroll',(evt)=>{console.log(evt)})
+        window.addEventListener('mousewheel', (evt: any) => {
+
+            if (this.mainContainerRef.current) {
+                // console.log(`Synthetic scrollby ${evt.deltaY}`, event)
+                this.mainContainerRef.current.scrollBy(0, evt.deltaY)
+            }
+        })
     }
     bodyText(count: number = 8) {
         let out = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum"
@@ -316,16 +339,43 @@ export class HistoryOfJSContent extends React.Component<HistoryOfJSContent_Props
 
 export interface SectionDisplay_Props {
     sectionData: Section
+    currentSection: number
     style: React.CSSProperties
 }
 export interface SectionDisplay_State { }
 export class SectionDisplay extends React.Component<SectionDisplay_Props, SectionDisplay_State>{
 
+    getBgColor() {
+        let start = fColor.green.lighten1.toHsv()
+        let end = fColor
+        return fColor.green.lighten1.toHexString()
+    }
+    getFgColor() {
+        return fColor.green.lighten3.toHexString()
+    }
 
     render() {
-        return <div onClick={()=>{this.props.sectionData.scrollIntoView()}} className={fColor.amber.base.hoverCssClass} style={CombineCopyObjects({ display: 'flex', cursor: 'pointer', flexDirection: 'column', flexGrow: 1, width: '100%', height: '100%', backgroundColor: fColor.green.lighten1.toHexString() }, this.props.style)}>
+        return <div onClick={() => { this.props.sectionData.scrollIntoView() }}
+            className={fColor.amber.base.hoverCssClass} style={CombineCopyObjects({
+                display: 'flex',
+                cursor: 'pointer',
+                flexDirection: 'column',
+                flexGrow: 1,
+                width: '100%',
+                height: '100%',
+                backgroundColor: this.getBgColor(),
+                position: 'relative'
+            }, this.props.style)}>
+            <div style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: `${(this.props.currentSection - this.props.sectionData.index).clamp(0, 1) * 100}%`,
+                backgroundColor: this.getFgColor()
+            }}></div>
             <div style={{ flexGrow: 1 }}></div>
-            <div style={{ textAlign: 'center', verticalAlign: 'middle' }}>{this.props.sectionData?.name}</div>
+            <div style={{ textAlign: 'center', verticalAlign: 'middle', zIndex: 3 }}>{this.props.sectionData?.name}</div>
             <div style={{ flexGrow: 1 }}></div>
         </div>
     }

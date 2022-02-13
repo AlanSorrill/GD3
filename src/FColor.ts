@@ -1,3 +1,4 @@
+import { lerp } from "./Imports";
 
 export class FColorSwath {
     constructor(data: any, swatchName: string) {
@@ -30,6 +31,9 @@ export class FColorSwath {
     accent3: FColor;
     accent4: FColor;
 }
+
+export type RGB = [r: number, b: number, g: number]
+export type HSV = [h: number, s: number, v: number]
 export class FColor {
     private aa: number;
     private bb: number;
@@ -57,8 +61,8 @@ export class FColor {
         let a = colorHex.length > 6 ? parseInt(colorHex.substr(6, 2), 16) : -1;
         return new FColor(r, g, b, a, 255, name, swatchName);
     }
-    
-    get hoverCssClass(){
+
+    get hoverCssClass() {
         return `hover-${this.swatchName}-${this.name}`
     }
     lastHex: string = null;
@@ -89,6 +93,13 @@ export class FColor {
     get a(): number {
         return (this.aa / this.total) * 255
     }
+    toHsv(): HSV {
+        return FColor.rgb2hsv(this.r, this.g, this.b)
+    }
+    static hsvToRgbString(hsv: HSV){
+        let rgb = this.hsv2rgbTuple(hsv);
+        return `rgb(${rgb[0]}, ${rgb[1]},${rgb[2]})`
+    }
     get hasChanged(): boolean {
         return this.oldStr == null; (this.oldVals[0] != this.r) || (this.oldVals[1] != this.g) || (this.oldVals[2] != this.b) || (this.oldVals[3] != this.a);
     }
@@ -97,6 +108,7 @@ export class FColor {
     }
     private oldStr: string = null;
     private oldVals: [number, number, number, number] = [-1, -1, -1, -1];
+
     toHexString() {
         if (this.hasChanged) {
             this.genStr();
@@ -115,6 +127,37 @@ export class FColor {
     setOpacity(decimalPercent: number) {
         this.setAlpha(this.total * decimalPercent);
         return this;
+    }
+    private static rgbToString(rgb: [r: number, g: number, b: number]) {
+        return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`
+    }
+    private static interpArr<T extends number[]>(start: T, end: T, alpha: number): T {
+        let out: T = [] as any
+        for (let i = 0; i < start.length; i++) {
+            out[i] = lerp(start[i], end[i], alpha);
+        }
+        return out;
+    }
+    static interpHsv_toRGBString(a: FColor, b: FColor): (alpha: number) => string {
+        let hsvA = this.rgb2hsv(a.r, a.g, a.b);
+        let hsvB = this.rgb2hsv(b.r, b.g, b.b);
+        return (alpha: number) => FColor.rgbToString(FColor.hsv2rgbTuple(FColor.interpArr(hsvA, hsvB, alpha)))
+    }
+
+    static rgb2hsvTuple(rgb: RGB): HSV {
+        return this.rgb2hsv(rgb[0], rgb[1], rgb[2])
+    }
+    static hsv2rgbTuple(hsv: HSV): RGB {
+        return this.hsv2rgb(hsv[0], hsv[1], hsv[2])
+    }
+    static rgb2hsv(r: number, g: number, b: number): [h: number, s: number, v: number] {
+        let v = Math.max(r, g, b), c = v - Math.min(r, g, b);
+        let h = c && ((v == r) ? (g - b) / c : ((v == g) ? 2 + (b - r) / c : 4 + (r - g) / c));
+        return [60 * (h < 0 ? h + 6 : h), v && c / v, v];
+    }
+    static hsv2rgb(h: number, s: number, v: number): [r: number, g: number, b: number] {
+        let f = (n, k = (n + h / 60) % 6) => v - v * s * Math.max(Math.min(k, 4 - k, 1), 0);
+        return [f(5), f(3), f(1)];
     }
 }
 export class FColorDirectory {

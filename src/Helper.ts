@@ -1,4 +1,4 @@
-import { FColorDirectory } from "./FColor";
+
 import React, { DOMAttributes, DOMElement } from 'react';
 import ReactDom from 'react-dom'
 
@@ -72,11 +72,23 @@ declare global {
         mapWhile<B>(predicate: (value: T) => boolean, transform: (value: T) => B): B[]
         forMap<B>(transform: (value: T, index: number) => B, startValue: OptFunc<number>, predicate: (index: number, arr: this) => boolean, update: OptFunc<number>): B[]
     }
-    var fColor: FColorDirectory
+    interface Number {
+        clamp(low: number, high: number): number
+        alphaInRange(low: number, high: number, clamped?: boolean): number
+    }
 }
 
-window.fColor = new FColorDirectory();
-export { fColor }
+if (typeof Number.prototype.alphaInRange == 'undefined') {
+    Number.prototype.alphaInRange = function (low: number, high: number, clamped: boolean = true) {
+        let a = (this - low) / (high - low)
+        return  clamped ? a.clamp(0,1) : a;
+    }
+}
+if (typeof Number.prototype.clamp == 'undefined') {
+    Number.prototype.clamp = function (low, high) {
+        return Math.max(0, Math.min(1, this))
+    }
+}
 if (typeof Array.prototype.mapWhile == 'undefined') {
     Array.prototype.mapWhile = function (predicate, transform) {
         let out = []
@@ -107,6 +119,18 @@ if (typeof String.prototype.replaceAll == 'undefined') {
 export function lerp(start: number, end: number, alpha: number) {
     return start + (end - start) * alpha
 }
+//
+
+export function interpMap(inputA: number, inputB: number, outputA: number, outputB: number, clamp: boolean = true) {
+
+    return (input: number) => {
+        let alpha = (input - inputA) / (inputB - inputA)
+        if (clamp) {
+            alpha = Math.max(0, Math.min(alpha, 1))
+        }
+        return lerp(outputA, outputB, alpha)
+    }
+}
 export function RenderIntoRoot<T extends Element>(element: React.FunctionComponentElement<T> | React.FunctionComponentElement<T>[]) {
     let mainContainer = document.getElementById('root')
     if (!mainContainer) {
@@ -123,6 +147,7 @@ export function RenderIntoRoot<T extends Element>(element: React.FunctionCompone
     }
     document.body.style.overflowY = 'hidden'
     mainContainer.style.overflowY = 'hidden'
+    
     ReactDom.render(element, mainContainer);
 }
 export function ImportGoogleFont(familyName: string) {

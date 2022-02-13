@@ -1,6 +1,8 @@
 import React from 'react'
 
 import { Device, ImportGoogleFont } from '../Helper'
+import { ensureFColor } from '../Imports'
+
 interface Project1Root_State {
     width: number
     height: number
@@ -8,6 +10,7 @@ interface Project1Root_State {
 export class Project1Root extends React.Component<any, Project1Root_State> {
     constructor(props) {
         super(props)
+        ensureFColor()
         this.state = {
             width: window.innerWidth,
             height: window.innerHeight
