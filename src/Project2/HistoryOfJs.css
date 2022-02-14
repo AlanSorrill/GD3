@@ -7,6 +7,25 @@ html {
     height: 100%;
 }
 
+.browserWars {
+    margin-left: auto;
+    margin-right: auto;
+    position: absolute;
+    z-index: 3;
+    width: 98%;
+    height: 50em;
+    bottom: 0;
+    font-size: 80px;
+    font-weight: bold;
+    text-align: justify;
+    overflow: hidden;
+    transform-origin: 50% 100%;
+    transform: perspective(350px) rotateX(25deg);
+    font-family: "Droid Sans", arial, verdana, sans-serif;
+    font-weight: 700;
+    color: #EBD71C;
+}
+
 
 /* #crawl {
     color: #f5c91c;      // yellow color for all text 

@@ -1,6 +1,6 @@
 import React from "react";
 import { FColor, FColorDirectory, Section, Section_Http, Section_Prehistoric } from "../Imports";
-import { CombineCopyObjects, Device, ImportGoogleFont, lerp } from "../Helper";
+import { CombineCopyObjects, Device, ImportGoogleFont, lerp, lerpTuple } from "../Helper";
 import { ReactCanvas } from "../ReactCanvas";
 
 import "./HistoryOfJs.css"
@@ -277,7 +277,7 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
                 {/* {Device.isPhone ? null : <div style={{ width: this.col1 }}></div>} */}
             </div>
 
-            <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 1000 }}>{currentSectionAlpha.toFixed(2)}</div>
+            {/* <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 1000 }}>{currentSectionAlpha.toFixed(2)}</div> */}
         </div >
     }
     componentDidMount(): void {
@@ -347,36 +347,52 @@ export class SectionDisplay extends React.Component<SectionDisplay_Props, Sectio
 
     getBgColor() {
         let start = fColor.green.lighten1.toHsv()
-        let end = fColor
-        return fColor.green.lighten1.toHexString()
+        let end = fColor.lightText[0].toHsv();
+        return FColor.hsvToRgbString(lerpTuple(start, end, this.props.currentSection.alphaInRange(-1, 0, true), ['start', 'startToEnd', 'start']))
     }
     getFgColor() {
-        return fColor.green.lighten3.toHexString()
+        return fColor.lightText[1].toHexString()
     }
 
     render() {
         return <div onClick={() => { this.props.sectionData.scrollIntoView() }}
-            className={fColor.amber.base.hoverCssClass} style={CombineCopyObjects({
+            style={CombineCopyObjects({
+                flexGrow: 1,
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+            }, this.props.style)}>
+
+            <div style={{
+                width: '100%',
+                height: '100%',
                 display: 'flex',
                 cursor: 'pointer',
                 flexDirection: 'column',
-                flexGrow: 1,
-                width: '100%',
-                height: '100%',
-                backgroundColor: this.getBgColor(),
-                position: 'relative'
-            }, this.props.style)}>
-            <div style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: `${(this.props.currentSection - this.props.sectionData.index).clamp(0, 1) * 100}%`,
-                backgroundColor: this.getFgColor()
-            }}></div>
-            <div style={{ flexGrow: 1 }}></div>
-            <div style={{ textAlign: 'center', verticalAlign: 'middle', zIndex: 3 }}>{this.props.sectionData?.name}</div>
-            <div style={{ flexGrow: 1 }}></div>
+                position: 'relative',
+
+
+            }}>
+
+                <div style={{
+                    position: 'absolute',
+                    left: this.props.sectionData.index == 0 ? 0 : 16,
+                    right: 0, top: 0, bottom: 0,
+                    backgroundColor: this.getBgColor(),
+                }} className={fColor.amber.base.hoverCssClass}></div>
+
+                <div style={{
+                    position: 'absolute',
+                    left: this.props.sectionData.index == 0 ? 0 : 16,
+                    top: 0,
+                    bottom: 0,
+                    width: `${(this.props.currentSection - this.props.sectionData.index).clamp(0, 1) * 100}%`,
+                    backgroundColor: this.getFgColor()
+                }} className={fColor.amber.lighten2.hoverCssClass}></div>
+                <div style={{ flexGrow: 1 }}></div>
+                <div style={{ textAlign: 'center', verticalAlign: 'middle', zIndex: 3 }}>{this.props.sectionData?.name}</div>
+                <div style={{ flexGrow: 1 }}></div>
+            </div>
         </div>
     }
 }

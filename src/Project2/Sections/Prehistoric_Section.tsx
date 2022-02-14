@@ -1,4 +1,5 @@
 import React from "react";
+import { lerpTuple } from "../../Helper";
 import { Device, FColor, interpMap, lerp, Project2Root, Section } from "../../Imports";
 
 
@@ -77,7 +78,12 @@ export class Section_Prehistoric extends Section {
         return <div onScroll={(event: any) => {
             window.scrollBy(0, event.deltaX)
             console.log('synthetic scroll', event)
-        }} ref={this.parentContainerRef} style={{ height: this.calcHolderHeight(), color: fColor.lightText[1].toHexString(), backgroundColor: this.backgroundColorInterp(alpha.alphaInRange(-1, 0)) }}>
+        }} ref={this.parentContainerRef} style={{
+            height: this.calcHolderHeight(),
+            color: fColor.lightText[1].toHexString(),
+            backgroundColor: FColor.hsvToRgbString(lerpTuple(fColor.green.darken2.toHsv(), fColor.black.toHsv(), alpha.alphaInRange(-1, 0), ['start', 'startToEnd', 'startToEnd'])),
+            // 'tst': this.backgroundColorInterp(alpha.alphaInRange(-1, 0))
+        }}>
 
             <div style={{ width: '300vw', display: 'inline-block', top: this.getScrollTop(), position: this.getPosType(), left: 0 - this.getScrollDist() }}
                 ref={this.childContainerRef}>
@@ -85,7 +91,7 @@ export class Section_Prehistoric extends Section {
                 <div style={{ width: '100vw', float: 'left' }}>
                     <div style={{ height: this.root.navHeight }}></div>
                     <div style={{ marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
-                        <h2>The Internet Before Time</h2>
+                        <h2>Prehistoric Internet</h2>
                         <img src='./project2/chromeDino.png'></img>
                     </div>
                     <div style={{ marginLeft: 'auto', marginRight: 'auto', width: Device.switch(this.root.col8, this.root.col12, this.root.col12) }}>
@@ -164,3 +170,5 @@ export class Section_Prehistoric extends Section {
     }
 
 }
+
+

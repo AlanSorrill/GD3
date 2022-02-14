@@ -115,6 +115,10 @@ export class FColor {
         }
         return this.oldStr;
     }
+    toHexStringAlpha(a: number){
+        return `rgba(${this.r}, ${this.g}, ${this.b}, ${a})`
+    }
+    
     copy() {
         return new FColor(this.rr, this.gg, this.bb, this.aa, this.total);
     }

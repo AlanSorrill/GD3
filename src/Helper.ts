@@ -1,6 +1,7 @@
 
 import React, { DOMAttributes, DOMElement } from 'react';
 import ReactDom from 'react-dom'
+import BTree from 'sorted-btree';
 
 export type DeviceType = 'phone' | 'tablet' | 'desktop'
 export type Orientation = 'vertical' | 'horizontal'
@@ -75,13 +76,19 @@ declare global {
     interface Number {
         clamp(low: number, high: number): number
         alphaInRange(low: number, high: number, clamped?: boolean): number
+        isInRange(low: number, high: number): boolean
+    }
+
+}
+if (typeof Number.prototype.isInRange == 'undefined') {
+    Number.prototype.isInRange = function (low: number, high: number) {
+        return this >= low && this <= high;
     }
 }
-
 if (typeof Number.prototype.alphaInRange == 'undefined') {
     Number.prototype.alphaInRange = function (low: number, high: number, clamped: boolean = true) {
         let a = (this - low) / (high - low)
-        return  clamped ? a.clamp(0,1) : a;
+        return clamped ? a.clamp(0, 1) : a;
     }
 }
 if (typeof Number.prototype.clamp == 'undefined') {
@@ -119,6 +126,51 @@ if (typeof String.prototype.replaceAll == 'undefined') {
 export function lerp(start: number, end: number, alpha: number) {
     return start + (end - start) * alpha
 }
+
+export function interpolate(stops: [time: number, value: number][], alpha: number, interp: (s: number, e: number, a: number) => number = lerp) {
+    let startIndex: number = -1;
+
+    for (let i = 0; i < stops.length; i++) {
+        if (alpha >= stops[i][0]) {
+            startIndex = i;
+        }
+    }
+    if (startIndex == -1) {
+        return stops[0][1]
+    }
+    if (startIndex < stops.length - 1) {
+        console.log(`Interp ${startIndex} to ${startIndex + 1}`)
+        return interp(stops[startIndex][1], stops[startIndex + 1][1], alpha.alphaInRange(stops[startIndex][0], stops[startIndex + 1][0]));
+    }
+    return stops[startIndex][1];
+}
+
+export type lerpTupleOptions<T extends number[]> = { [Property in keyof T]?: 'start' | 'end' | 'startToEnd' | 'endToStart'; }
+export function lerpTuple<T extends number[]>(start: T, end: T, alpha: number, options: lerpTupleOptions<T> = {}) {
+    let out: T = [] as any
+    for (let i = 0; i < start.length; i++) {
+        if (typeof options[i] == 'undefined') {
+            out[i] = lerp(start[i], end[i], alpha);
+        } else {
+            switch (options[i]) {
+                case 'end':
+                    out[i] = end[i];
+                    break;
+                case 'start':
+                    out[i] = start[i];
+                    break;
+                case 'startToEnd':
+                    out[i] = lerp(start[i], end[i], alpha);
+                    break;
+                case 'endToStart':
+                    out[i] = lerp(end[i], start[i], alpha);
+                    break;
+            }
+        }
+    }
+    return out;
+}
+
 //
 
 export function interpMap(inputA: number, inputB: number, outputA: number, outputB: number, clamp: boolean = true) {
@@ -147,8 +199,86 @@ export function RenderIntoRoot<T extends Element>(element: React.FunctionCompone
     }
     document.body.style.overflowY = 'hidden'
     mainContainer.style.overflowY = 'hidden'
-    
+
     ReactDom.render(element, mainContainer);
+}
+
+export class RectOnScreen {
+    static fromLeft(box: DOMRect) {
+        return (box.right / window.innerWidth)
+    }
+    static fromRight(box: DOMRect) {
+        return 1 - (box.left / window.innerWidth)
+    }
+    static fromTop(box: DOMRect) {
+        return (box.bottom / window.innerWidth)
+    }
+    static fromBottom(box: DOMRect) {
+        return 1 - (box.top / window.innerHeight)
+    }
+    static verticalOverlap(box: DOMRect) {
+        if (box.top < window.innerHeight) {
+
+            if (box.bottom > 0) {
+                if (box.bottom < window.innerHeight) {
+                    return box.bottom / window.innerHeight
+                } else {
+                    return 1 - box.top / window.innerHeight;
+                }
+            }
+            return (0).alphaInRange(box.top, box.bottom - window.innerHeight);
+        }
+    }
+
+    //-1 = before
+    // 0 = topAtTopOfWindow
+    // 1 = bottomAtBottomOfWindow
+    // 2 = after
+    // box must be taller than window
+    static verticalBeta(box: DOMRect) {
+        if (box.top > window.innerHeight) {
+            return -1
+        }
+        if (box.top > 0) {
+            return (box.top / window.innerHeight) * -1
+        }
+        if (box.bottom < window.innerHeight) {
+            return (1 - box.bottom / window.innerHeight) + 1
+        }
+        return (0).alphaInRange(box.top, box.bottom - window.innerHeight)
+    }
+}
+
+export type FCurveInterp = 'linear'
+export type FCurveStop = [time: number, value: number] | [time: number, value: number, interp: FCurveInterp]
+export class FCurve<T extends FCurveStop[]> {
+    // stops: T;
+    index: BTree<number, FCurveStop>
+    constructor(stops: T) {
+        // this.stops = stops.sort((a: FCurveStop, b: FCurveStop)=>(a[0] - b[0]));
+        this.index = new BTree(stops.map((value: FCurveStop) => ([value[0], value])))
+    }
+    getValue(time: number) {
+        let low = this.index.getPairOrNextLower(time)
+        let high = this.index.getPairOrNextHigher(time);
+        if (high[0] - low[0] == 0) {
+            high = this.index.getPairOrNextHigher(time + 0.001);
+        }
+        let alpha = time.alphaInRange(low[0], high[0], true);
+        switch (this.getInterpMode(low[1])) {
+            case 'linear':
+                return lerp(low[1][1], high[1][1], alpha);
+
+            default:
+                throw new Error(`Unknown interp type ${this.getInterpMode(low[1])}`)
+        }
+    }
+    private getInterpMode(stop: FCurveStop) {
+        if (stop.length == 3) {
+            return stop[2]
+        }
+        return 'linear'
+    }
 }
 export function ImportGoogleFont(familyName: string) {
     let id = familyName + 'GoogleFont'
