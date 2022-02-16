@@ -88,15 +88,18 @@ export class Section_Prehistoric extends Section {
             <div style={{ width: '300vw', display: 'inline-block', top: this.getScrollTop(), position: this.getPosType(), left: 0 - this.getScrollDist() }}
                 ref={this.childContainerRef}>
 
-                <div style={{ width: '100vw', float: 'left' }}>
-                    <div style={{ height: this.root.navHeight }}></div>
-                    <div style={{ marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
-                        <h2>Prehistoric Internet</h2>
-                        <img src='./project2/chromeDino.png'></img>
+                <div style={{ width: '100vw', height: '100vh', float: 'left', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div style={{ flexGrow: 1 }} />
+                    <div>
+                        <div style={{ marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
+                            <h2>Prehistoric Internet</h2>
+                            <img src='./project2/chromeDino.png'></img>
+                        </div>
+                        <div style={{ marginLeft: 'auto', marginRight: 'auto', width: Device.switch(this.root.col8, this.root.col12, this.root.col12) }}>
+                            &emsp;The Internet evolved from university researchers trying to connect their computers together. The idea of transmitting encoded data via electrical signals was nothing new, but standardizing the format of these messages hailed a new era. The Transmission Control Protocol (TCP) was published in 1974. It handled data loss automatically, allowing computers to send data to each other reliably. Various protocols were developed on top of this, such as HTTP
+                        </div>
                     </div>
-                    <div style={{ marginLeft: 'auto', marginRight: 'auto', width: Device.switch(this.root.col8, this.root.col12, this.root.col12) }}>
-                        &emsp;The Internet evolved from university researchers trying to connect their computers together. The idea of transmitting encoded data via electrical signals was nothing new, but standardizing the format of these messages hailed a new era. The Transmission Control Protocol (TCP) was published in 1974. It handled data loss automatically, allowing computers to send data to each other reliably. Various protocols were developed on top of this, such as HTTP
-                    </div>
+                    <div style={{ flexGrow: 1 }} />
                 </div>
                 <div style={{ width: '100vw', float: 'left', display: 'flex', flexDirection: 'column', height: '100vh' }}>
                     <div style={{ flexGrow: 1 }}></div>
@@ -117,6 +120,13 @@ export class Section_Prehistoric extends Section {
                                     </span>
                                     <div style={{ fontFamily: 'Roboto Mono', marginLeft: 16, padding: 4, height: 100, width: 300, backgroundColor: fColor.darkMode[7].toHexString() }}>
                                         {'GET myPage.html HTTP/1.0'}
+                                        <br />
+                                        {'Content-Type: Text/HTML'}
+                                        <br />
+                                        {'User-Agent: Chrome'}
+                                        <br />
+                                        {'Cache-Control: no-cache'}
+                                        <br />
 
                                     </div>
                                 </div>
@@ -155,7 +165,7 @@ export class Section_Prehistoric extends Section {
                         <div style={{ marginLeft: 'auto', marginRight: 'auto', textAlign: 'center', width: Device.switch(this.root.col8, this.root.col12, this.root.col12) }}>
                             <img src='./project2/dawnOfMosaic.gif' />
                             <div style={{ height: '10vh' }} />
-                            &emsp;The first popular web browser was Mosaic built in 1993, it used HTTP to transfer HTML files which described layout for text and images. <span style={{ cursor: 'pointer', color: fColor.blue.lighten1.toHexString() }}><u>Hyperlinks</u></span> could be used to take the user between pages, but each page was static.
+                            &emsp;The first popular web browser was Mosaic built in 1993, it used HTTP to transfer HTML files which described layout for text and images.<br /> <span style={{ cursor: 'pointer', color: fColor.blue.lighten1.toHexString() }}><u>Hyperlinks</u></span> could be used to take the user between pages, but each page was static.
 
 
                         </div>

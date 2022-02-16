@@ -22,10 +22,10 @@ export class Project1Root extends React.Component<any, Project1Root_State> {
             height: window.innerHeight
         })
     }
-    private updaterr: ()=>void = null;
+    private updaterr: () => void = null;
     componentDidMount(): void {
         let ths = this;
-        this.updaterr = ()=>{ths.updateDimensions()};
+        this.updaterr = () => { ths.updateDimensions() };
         window.addEventListener('resize', this.updaterr)
     }
     componentWillUnmount(): void {
@@ -81,8 +81,10 @@ export class StudentTradingCard extends React.Component {
                 <div style={{ fontSize: this.fontSizes.smallTitle, textAlign: 'right', color: this.colors.lightText[1] }}>About Me</div>
                 <div style={{ fontSize: this.fontSizes.body, textAlign: 'left', color: this.colors.lightText[0], paddingBottom: this.sidePadding }}>
                     I'm a senior undergrad majoring in computer science.<br />
-                    My hobbies include cooking and coding <a href='https://github.dev/AlanSorrill/GDSN3' className="material-icons noselect" style={{ cursor: 'pointer', color: this.colors.lightText[0], position: 'relative', top: 2, fontSize: this.fontSizes.body }}>
+                    My hobbies include cooking and coding <a href='https://github.dev/AlanSorrill/GD3' className="material-icons noselect" style={{ cursor: 'pointer', color: this.colors.lightText[0], position: 'relative', top: 2, fontSize: this.fontSizes.body }}>
                         code
+                    </a> <a href='https://github.com/AlanSorrill/GD3' className="material-icons noselect" style={{ cursor: 'pointer', color: this.colors.lightText[0], position: 'relative', top: 2, fontSize: this.fontSizes.body }}>
+                        code_off
                     </a><br />
                     I play trumpet in the Hawkeye Marching Band.
                 </div>
@@ -103,7 +105,7 @@ export class InterestCard extends React.Component<InterestCard_Props, InterestCa
     padding = 5
     render() {
         return <div style={{ width: '100%', height: 75, backgroundColor: fColor.white.toHexString(), marginBottom: 8, borderRadius: 24, display: 'flex', boxShadow: '1px 1px 2px #111' }}>
-            <div style={{ width: this.imageSize, height: this.imageSize, margin: this.padding, borderRadius: 21, backgroundPosition: '50%, 50%', backgroundSize: 'cover', backgroundImage: `url('${this.props.image }')`}} />
+            <div style={{ width: this.imageSize, height: this.imageSize, margin: this.padding, borderRadius: 21, backgroundPosition: '50%, 50%', backgroundSize: 'cover', backgroundImage: `url('${this.props.image}')` }} />
             <div style={{ flexGrow: 1, position: 'relative', padding: this.padding, paddingTop: this.padding * 2 }}>
                 <div style={{ textAlign: 'right', position: 'absolute', top: this.padding, right: this.padding * 2, color: fColor.darkText[1].toHexString() }}>{this.props.title}</div>
                 <div style={{ textAlign: 'left', position: 'absolute', left: 0, bottom: 0, color: fColor.darkText[0].toHexString(), fontSize: `${this.imageSize / 2}px` }}>{this.props.value}</div>

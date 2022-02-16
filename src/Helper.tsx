@@ -123,6 +123,31 @@ if (typeof String.prototype.replaceAll == 'undefined') {
         return this.split(a).join(b);
     };
 }
+export type Optionalize<Type> = {
+    [Property in keyof Type]?: Type[Property]
+}
+export function fillDefaults<T>(input: T, defaults: T) {
+    let out: T = {} as any
+    for (let key in defaults) {
+        if (typeof input[key] == 'undefined') {
+            out[key] = defaults[key]
+        } else {
+            out[key] = input[key]
+        }
+    }
+    return out;
+}
+export function brNewlines(lines: string[], options: { brCount?: number, indent?: boolean } = {}): React.ReactNode[] {
+    options = fillDefaults(options, { brCount: 1, indent: true })
+    let out: React.ReactNode[] = [];
+    for (let i = 0; i < lines.length; i++) {
+        out.push(`${options.indent ? '&emsp;' : ''}${lines[i]}`)
+        for(let b = 0;b < options.brCount;b++){
+            out.push(<br />)
+        }
+    }
+    return out;
+}
 export function lerp(start: number, end: number, alpha: number) {
     return start + (end - start) * alpha
 }

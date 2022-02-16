@@ -1,6 +1,6 @@
 import React from "react";
-import { interpolate } from "../../Helper";
-import { Device, Project2Root, RectOnScreen, Section } from "../../Imports";
+
+import { brNewlines, interpolate, Project2Root, RectOnScreen, Section } from "../../Imports";
 // import "./starwarsintro.css"
 
 export class Section_Http extends Section {
@@ -13,9 +13,7 @@ export class Section_Http extends Section {
         super('1995', root)
 
     }
-    getScrollText() {
-        return "Netscape2, is in development. The goal of this new browser: an interactive web. Time runs short; Microsoft has just tried to purchase Netscape. They predict that Microsoft will copy their first browser and use Window’s massive market share to destroy the Netscape Navigator. Netscape has partnered with Sun Microsystems to embed the Java programming language in their new browser. "
-    }
+
     getLogoLength() {
         return window.innerHeight * 0.5;
     }
@@ -81,19 +79,25 @@ export class Section_Http extends Section {
                         <img
                             src="./project2/browserWars.png"
                             style={{
-                                visibility: beta < -0.5 ? 'hidden' : 'visible',
+                                visibility: beta < -0.6 ? 'hidden' : 'visible',
                                 height: 'auto',
-                                width: interpolate([[-0.7, this.root.col11], [0, 0]], beta)
+                                width: interpolate([[-0.6, this.root.col11], [0, 0]], beta)
                             }} /></div>
                     <div style={{ flexGrow: 1 }}></div>
                     <div ref={this.warpedContainer} className="browserWars">
                         <div style={{
                             position: 'relative',
                             top: interpolate([[-0.25, 100], [1, 0], [2, -100]], beta) + "%",
-                            color: fColor.yellow.base.toHexStringAlpha(interpolate([[-1, 0], [-0.9, 1], [1, 1], [2, 0]], beta))
+                            color: fColor.yellow.base.toHexStringAlpha(interpolate([[-1, 0], [-0.9, 1], [1, 1], [1.6, 0]], beta))
                         }}>
-                            <h1 style={{ textAlign: 'center' }}>A new browser</h1>
-                            {this.getScrollText()}
+                            <h1 style={{ textAlign: 'center' }}>A NEW BROWSER</h1>
+                            {brNewlines([
+                                "Netscape2, is in development. The goal of this new browser: an interactive web. Time runs short; Microsoft has just tried to purchase Netscape. They predict that Microsoft will copy their first browser and use Window’s massive market share to destroy the Netscape Navigator. Netscape has partnered with Sun Microsystems to embed the Java programming language in their new browser. ",
+                                "Java is an object oriented, strict typed, partially compiled language. It is selected because unlike other compiled languages, it transpiles into a cross platform binary format which is interpreted by the JavaVM. ",
+                                "Unfortunately, Java does not have access to the HTML elements on the page, and would be “stuck in a box”, only able to draw in one rectangle. It’s updated versions often break old code, requiring users to constantly update their Java plugin. Netscape wants a “companion” language which will glue the Java applets to the webpage, and manipulate the DOM. This language will be written in the same files as the HTML and CSS.",
+                                "Brendan Eich is hired to implement such a language. Given the imminent Microsoft threat, he is tasked with prototyping this language in 10 days"
+                            ], { brCount: 2, indent: false })}
+
                             {/* {([1, 1, 1, 1, 1, 1, 1].map(() => (<br />)))} */}
 
                         </div>
