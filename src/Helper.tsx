@@ -72,13 +72,32 @@ declare global {
     interface Array<T> {
         mapWhile<B>(predicate: (value: T) => boolean, transform: (value: T) => B): B[]
         forMap<B>(transform: (value: T, index: number) => B, startValue: OptFunc<number>, predicate: (index: number, arr: this) => boolean, update: OptFunc<number>): B[]
+        insertBetweenEach<T>(item: T | ((afterIndex: number, left: T, right: T) => T)): T[]
     }
     interface Number {
         clamp(low: number, high: number): number
         alphaInRange(low: number, high: number, clamped?: boolean): number
         isInRange(low: number, high: number): boolean
+        negate(): number
+        oneMinus(): number
+        isEven(): boolean
     }
 
+}
+if (typeof Number.prototype.isEven == 'undefined') {
+    Number.prototype.isEven = function () {
+        return this % 2 == 0;
+    }
+}
+if (typeof Number.prototype.oneMinus == 'undefined') {
+    Number.prototype.oneMinus = function () {
+        return 1 - this;
+    }
+}
+if (typeof Number.prototype.negate == 'undefined') {
+    Number.prototype.negate = function () {
+        return this * -1;
+    }
 }
 if (typeof Number.prototype.isInRange == 'undefined') {
     Number.prototype.isInRange = function (low: number, high: number) {
@@ -94,6 +113,18 @@ if (typeof Number.prototype.alphaInRange == 'undefined') {
 if (typeof Number.prototype.clamp == 'undefined') {
     Number.prototype.clamp = function (low, high) {
         return Math.max(0, Math.min(1, this))
+    }
+}
+if (typeof Array.prototype.insertBetweenEach == 'undefined') {
+    Array.prototype.insertBetweenEach = function <T>(item: T | ((afterIndex: number, left: T, right: T) => T)) {
+        let out: T[] = []
+        let getItem = (typeof item == 'function') ? item as (((afterIndex: number, left: T, right: T) => T)) : ((afterIndex: number, left: T, right: T) => (item))
+        for (let i = 0; i < this.length - 1; i++) {
+            out.push(this[i])
+            out.push(getItem(i, this[i], this[i + 1]))
+        }
+        out.push(this[this.length - 1])
+        return out;
     }
 }
 if (typeof Array.prototype.mapWhile == 'undefined') {
@@ -126,7 +157,17 @@ if (typeof String.prototype.replaceAll == 'undefined') {
 export type Optionalize<Type> = {
     [Property in keyof Type]?: Type[Property]
 }
-export function fillDefaults<T>(input: T, defaults: T) {
+export type ListOptionals<T extends object> = Exclude<{
+    [K in keyof T]: T extends Record<K, T[K]>
+    ? never
+    : K
+}[keyof T], undefined>
+export type OnlyOptionals<T extends Object> = {
+    [K in ListOptionals<T>]: T[K]
+}
+
+
+export function fillDefaults<T extends Object>(input: T, defaults: OnlyOptionals<T>) {
     let out: T = {} as any
     for (let key in defaults) {
         if (typeof input[key] == 'undefined') {
@@ -142,7 +183,7 @@ export function brNewlines(lines: string[], options: { brCount?: number, indent?
     let out: React.ReactNode[] = [];
     for (let i = 0; i < lines.length; i++) {
         out.push(`${options.indent ? '&emsp;' : ''}${lines[i]}`)
-        for(let b = 0;b < options.brCount;b++){
+        for (let b = 0; b < options.brCount; b++) {
             out.push(<br />)
         }
     }
@@ -164,7 +205,7 @@ export function interpolate(stops: [time: number, value: number][], alpha: numbe
         return stops[0][1]
     }
     if (startIndex < stops.length - 1) {
-        console.log(`Interp ${startIndex} to ${startIndex + 1}`)
+        // console.log(`Interp ${startIndex} to ${startIndex + 1}`)
         return interp(stops[startIndex][1], stops[startIndex + 1][1], alpha.alphaInRange(stops[startIndex][0], stops[startIndex + 1][0]));
     }
     return stops[startIndex][1];
@@ -195,6 +236,7 @@ export function lerpTuple<T extends number[]>(start: T, end: T, alpha: number, o
     }
     return out;
 }
+
 
 //
 
@@ -321,4 +363,30 @@ export function ImportGoogleFont(familyName: string) {
 
 export function GenerateImage() {
     let canvas = new OffscreenCanvas(256, 256);
+}
+
+export function setCookie(name, value, days?) {
+    var expires = "";
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";
+}
+
+
+export function getCookie(name: string): string {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+export function eraseCookie(name) {
+    document.cookie = name + '=; Max-Age=-99999999;';
 }

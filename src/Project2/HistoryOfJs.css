@@ -26,6 +26,11 @@ html {
     color: #EBD71C;
 }
 
+@font-face {
+    font-family: Cascadia Code;
+    src: url("../../public/CascadiaCode.ttf");
+}
+
 
 /* #crawl {
     color: #f5c91c;      // yellow color for all text 

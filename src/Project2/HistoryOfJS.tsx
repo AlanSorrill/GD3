@@ -1,9 +1,10 @@
 import React from "react";
 import { FColor, FColorDirectory, Section, Section_Http, Section_Prehistoric } from "../Imports";
-import { CombineCopyObjects, Device, ImportGoogleFont, lerp, lerpTuple } from "../Helper";
+import { CombineCopyObjects, Device, getCookie, ImportGoogleFont, lerp, lerpTuple, setCookie } from "../Helper";
 import { ReactCanvas } from "../ReactCanvas";
 
 import "./HistoryOfJs.css"
+import { Examples_Section as Section_Examples } from "./Sections/Examples_Section";
 if (typeof fColor == 'undefined') {
     window.fColor = new FColorDirectory();
 }
@@ -30,13 +31,14 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
     timelineContainerRef: React.RefObject<HTMLDivElement>;
 
 
-    sections: [Section_Prehistoric, Section_Http]
+    sections: [Section_Prehistoric, Section_Http, Section_Examples]
 
     constructor(props: Project2Root_Props) {
         super(props);
         this.sections = [
             new Section_Prehistoric(this),
-            new Section_Http(this)
+            new Section_Http(this),
+            new Section_Examples(this)
         ]
         this.sections.forEach((section: Section, index: number) => { section.index = index })
         this.state = { scrollAmount: 0, navTransition: 1 }
@@ -150,8 +152,9 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
 
     private get alpha() {
         if (this.sections[0].containerElement.current) {
-            let rect = this.sections[0].containerElement.current.getBoundingClientRect()
-            let navAlpha = this.sections[0].getNavToSideAlpha()//this.currentSection.alphaInRange(0.95, 1, true)
+            // let rect = this.sections[0].containerElement.current.getBoundingClientRect()
+            return this.sections[0].getNavToSideAlpha();
+            let navAlpha = this.currentSection.alphaInRange(0.95, 1, true)
             // console.log(navAlpha);
             return navAlpha;
             // return 1 - (rect.bottom / window.innerHeight).clamp(0, 1)
@@ -187,6 +190,11 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
         let clientRect = this.bannerRef.current.getBoundingClientRect();
         let navTransition = Math.max(0, clientRect.bottom / clientRect.height)
         this.setState({ scrollAmount: 0, navTransition: navTransition })
+        if (this.mainContainerRef.current && this.autoScrolled) {
+            // console.log(`Saving scroll as ${this.mainContainerRef.current.scrollTop}`)
+            setCookie('scrollAmount', this.mainContainerRef.current.scrollTop)
+        }
+        // console.log('SCROLL')
         // console.log(navTransition)
         return true
     }
@@ -277,11 +285,19 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
                 {/* {Device.isPhone ? null : <div style={{ width: this.col1 }}></div>} */}
             </div>
 
-            {/* <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 1000 }}>{currentSectionAlpha.toFixed(2)}</div> */}
+            <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 1000, backgroundColor: fColor.darkMode[3].toHexString(), color: fColor.lightText[1].toHexString() }}>{currentSectionAlpha.toFixed(2)}</div>
         </div >
     }
+    
+    autoScrolled: boolean = false
     componentDidMount(): void {
         // this.mainContainerRef.current.addEventListener('scroll',(evt)=>{console.log(evt)})
+        let scrollCookie = getCookie('scrollAmount');
+        let scroll = Number(scrollCookie == null ? 0 : scrollCookie)
+        console.log(`Auto Scrolling to ${scrollCookie}`)
+        let ths = this;
+        setTimeout(()=>{ths.mainContainerRef.current.scrollTo(0, scroll);}, 500)
+        this.autoScrolled = true;
         window.addEventListener('mousewheel', (evt: any) => {
 
             if (this.mainContainerRef.current) {
@@ -289,6 +305,8 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
                 this.mainContainerRef.current.scrollBy(0, evt.deltaY)
             }
         })
+       
+        
     }
     bodyText(count: number = 8) {
         let out = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum"

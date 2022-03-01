@@ -26,48 +26,53 @@ export class Section_Prehistoric extends Section {
         if (!this.childContainerRef.current) {
             return 0
         } else {
-            return window.innerWidth * 2.5
+            return window.innerWidth * (2 + (window.innerHeight / window.innerWidth)) //- window.innerHeight / window.innerWidth
         }
     }
-    getScrollDist() {
-        if (!this.childContainerRef.current) {
+    getScrollLeft(parentRect: DOMRect) {
+        if (parentRect == null) {
             return 0
         }
-        let parentRect = this.parentContainerRef.current.getBoundingClientRect();
+
         if (parentRect.top > 0) {
             return 0
         }
         if (parentRect.bottom < window.innerHeight) {
             // console.log('over',parentRect.bottom)
-            return window.innerWidth * 2
+            return (this.calcHolderHeight() - window.innerHeight) * -1
         }
         // console.log(-1 * parentRect.top)
-        return -1 * parentRect.top
+        return parentRect.top
     }
+
     getNavToSideAlpha() {
-        if (!this.childContainerRef.current) {
+        if (!this.parentContainerRef.current) {
             return 0
         }
         let parentRect = this.parentContainerRef.current.getBoundingClientRect();
         if (parentRect.top > 0) { return 0 }
-        return (((parentRect.top) / window.innerWidth) / -2).alphaInRange(0.95, 1, true)
+
+        // let p = (parentRect.bottom / window.innerHeight).clamp(0, 1).oneMinus()
+        // console.log(p) 
+        // return p
+        return (((parentRect.top) / window.innerWidth) / -2).alphaInRange(0.9, 1, true)
         // interpMap()//.clamp(0,1)
     }
-    getScrollTop() {
-        if (!this.childContainerRef.current) {
+    getScrollTop(parentRect: DOMRect) {
+        if (parentRect == null) {
             return 0
         }
-        let parentRect = this.parentContainerRef.current.getBoundingClientRect();
+
         if (parentRect.bottom < window.innerHeight) {
-            return window.innerWidth * 2
+            return (this.calcHolderHeight() - window.innerHeight)
         }
         return 0;
     }
-    private getPosType() {
-        if (!this.childContainerRef.current) {
+    private getPosType(parentRect: DOMRect) {
+        if (parentRect == null) {
             return 'fixed'
         }
-        let parentRect = this.parentContainerRef.current.getBoundingClientRect();
+
         if (parentRect.top > 0 || parentRect.bottom < window.innerHeight) {
             return 'relative'
         }
@@ -75,6 +80,8 @@ export class Section_Prehistoric extends Section {
     }
 
     render(alpha: number): React.ReactNode {
+        let parentBounds = (this.parentContainerRef.current) ? this.parentContainerRef.current.getBoundingClientRect() : null;
+        let childBounds = (this.childContainerRef.current) ? this.childContainerRef.current.getBoundingClientRect() : null;
         return <div onScroll={(event: any) => {
             window.scrollBy(0, event.deltaX)
             console.log('synthetic scroll', event)
@@ -85,7 +92,7 @@ export class Section_Prehistoric extends Section {
             // 'tst': this.backgroundColorInterp(alpha.alphaInRange(-1, 0))
         }}>
 
-            <div style={{ width: '300vw', display: 'inline-block', top: this.getScrollTop(), position: this.getPosType(), left: 0 - this.getScrollDist() }}
+            <div style={{ width: '300vw', display: 'inline-block', top: this.getScrollTop(parentBounds), position: this.getPosType(parentBounds), left: this.getScrollLeft(parentBounds) }}
                 ref={this.childContainerRef}>
 
                 <div style={{ width: '100vw', height: '100vh', float: 'left', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>

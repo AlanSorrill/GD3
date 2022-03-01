@@ -7,6 +7,7 @@ export class Section_Http extends Section {
     browserWarsHoldContainer: React.RefObject<HTMLDivElement> = React.createRef()
     browserWarsScrollContainer: React.RefObject<HTMLDivElement> = React.createRef()
     warpedContainer: React.RefObject<HTMLDivElement> = React.createRef()
+    childContainer: React.RefObject<HTMLDivElement> = React.createRef()
     stickyDiv: React.RefObject<HTMLDivElement> = React.createRef()
 
     constructor(root: Project2Root) {
@@ -53,15 +54,16 @@ export class Section_Http extends Section {
         if (!this.warpedContainer.current) {
             return 0
         }
-        return this.warpedContainer.current.getBoundingClientRect().height * 15;
+        return this.childContainer.current.getBoundingClientRect().height * 1
     }
 
     render(alpha: number): React.ReactNode {
         let beta = this.calcBeta();
         let transparency = interpolate([[-1, 0], [-0.6, 1], [1, 1], [2, 0]], beta);
+
         return <div style={{ backgroundColor: fColor.darkMode[0].toHexString(), color: fColor.lightText[1].toHexString() }}>
 
-            <div ref={this.browserWarsScrollContainer} style={{ height: '250vh' }}>
+            <div ref={this.browserWarsScrollContainer} style={{ height: '400vh' }}>
                 <div ref={this.stickyDiv} style={{
                     position: 'fixed',
                     top: 0,
@@ -72,7 +74,7 @@ export class Section_Http extends Section {
                     display: (transparency > 0) ? 'flex' : 'none',
                     flexDirection: 'column'
                 }}>
-                    {/* <div style={{ color: 'white', position: 'absolute', left: 10, top: 30 }}>{beta}<br />{beta}</div> */}
+                    <div style={{ color: 'white', position: 'absolute', left: 10, top: 30 }}>{beta}<br />{beta}</div>
                     {/* <div style={{ color: 'white' }}><br />{this.getBackgroundTransparency(beta)}<br />{this.calcBeta()}</div> */}
                     <div style={{ flexGrow: 1 }}></div>
                     <div style={{ marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
@@ -85,9 +87,9 @@ export class Section_Http extends Section {
                             }} /></div>
                     <div style={{ flexGrow: 1 }}></div>
                     <div ref={this.warpedContainer} className="browserWars">
-                        <div style={{
+                        <div ref={this.childContainer} style={{
                             position: 'relative',
-                            top: interpolate([[-0.25, 100], [1, 0], [2, -100]], beta) + "%",
+                            top: interpolate([[-0.25, 100], [0, 0], [1, -150]], beta) + "%",
                             color: fColor.yellow.base.toHexStringAlpha(interpolate([[-1, 0], [-0.9, 1], [1, 1], [1.6, 0]], beta))
                         }}>
                             <h1 style={{ textAlign: 'center' }}>A NEW BROWSER</h1>

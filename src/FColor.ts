@@ -1,5 +1,6 @@
 import { lerp } from "./Imports";
 
+export type ColorMode = 'hsv' | 'rgb' | 'hexString'
 export class FColorSwath {
     constructor(data: any, swatchName: string) {
         this.lighten4 = FColor.fromHex(data['100'], swatchName, 'lighten4');
@@ -16,6 +17,7 @@ export class FColorSwath {
         this.accent3 = FColor.fromHex(data['a400'] ?? '#000', swatchName, 'accent3');
         this.accent4 = FColor.fromHex(data['a700'] ?? '#000', swatchName, 'accent4');
     }
+
     lighten5: FColor;
     lighten4: FColor;
     lighten3: FColor;
@@ -34,6 +36,7 @@ export class FColorSwath {
 
 export type RGB = [r: number, b: number, g: number]
 export type HSV = [h: number, s: number, v: number]
+export type RGBA = [r: number, b: number, g: number, a: number]
 export class FColor {
     private aa: number;
     private bb: number;
@@ -51,6 +54,7 @@ export class FColor {
         this.name = name;
         this.swatchName = swatchName;
     }
+
     static fromHex(colorHex: string, swatchName: string, name: string) {
         colorHex = colorHex.replaceAll('#', '').replaceAll(' ', '');
 
@@ -96,7 +100,7 @@ export class FColor {
     toHsv(): HSV {
         return FColor.rgb2hsv(this.r, this.g, this.b)
     }
-    static hsvToRgbString(hsv: HSV){
+    static hsvToRgbString(hsv: HSV) {
         let rgb = this.hsv2rgbTuple(hsv);
         return `rgb(${rgb[0]}, ${rgb[1]},${rgb[2]})`
     }
@@ -109,16 +113,20 @@ export class FColor {
     private oldStr: string = null;
     private oldVals: [number, number, number, number] = [-1, -1, -1, -1];
 
+    toHexStr() {
+        let componentToHex = (n: number) => { let hex = n.toString(16); return HTMLTextAreaElement.length == 1 ? `0${hex}` : hex }
+        return `#${componentToHex(this.r)}${componentToHex(this.g)}${componentToHex(this.b)}`
+    }
     toHexString() {
         if (this.hasChanged) {
             this.genStr();
         }
         return this.oldStr;
     }
-    toHexStringAlpha(a: number){
+    toHexStringAlpha(a: number) {
         return `rgba(${this.r}, ${this.g}, ${this.b}, ${a})`
     }
-    
+
     copy() {
         return new FColor(this.rr, this.gg, this.bb, this.aa, this.total);
     }
@@ -601,6 +609,55 @@ export class FColorDirectory {
             }
         }
         this.updateProceduralCss();
+    }
+    toJson(colorMode: ColorMode = 'hexString') {
+        let out: any = {};
+        var prop: any[] | FColor | FColorSwath | this[Extract<keyof this, string>];
+        for (let key in this) {
+            prop = this[key]
+            if (FColorDirectory.isColorSwath(prop)) {
+                out[key] = FColorDirectory.swatchToJson(prop, colorMode)
+            } else if (FColorDirectory.isFColor(prop)) {
+                out[key] = FColorDirectory.fColorToJson(prop, colorMode);
+            } else if (Array.isArray(prop)) {
+                out[key] = []
+
+                prop.forEach((value: any, index: number) => {
+                    if (FColorDirectory.isFColor(value)) {
+                        out[key].push(FColorDirectory.fColorToJson(value, colorMode))
+                    }
+                })
+                if(out[key].length == 0){
+                    delete out[key]
+                }
+            }
+        }
+        return out;
+    }
+    static isColorSwath(input: any): input is FColorSwath {
+        if (typeof input != 'object') {
+            return false;
+        }
+        return input.constructor?.name == 'FColorSwath'
+    }
+    static isFColor(input: any): input is FColor {
+        if (typeof input != 'object') {
+            return false;
+        }
+        return input.constructor?.name == 'FColor'
+    }
+    static swatchToJson(swath: FColorSwath, colorMode: ColorMode = 'hsv'): { [Prop in keyof FColorSwath]: [number, number, number] } {
+        let out: any = {}
+        for (let key in swath) {
+            if (swath[key] instanceof FColor) {
+                let color: FColor = swath[key];
+                out[key] = this.fColorToJson(color, colorMode)
+            }
+        }
+        return out;
+    }
+    static fColorToJson(color: FColor, colorMode: ColorMode = 'hsv') {
+        return colorMode == 'rgb' ? [color.r, color.g, color.b] : (colorMode == 'hsv' ? color.toHsv() : color.toHexStr())
     }
 
     createCssHoverClass(className: string, hoverBackground: FColor) {
