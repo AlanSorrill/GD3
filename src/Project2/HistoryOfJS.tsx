@@ -213,6 +213,9 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
     mainContainerRef: React.RefObject<HTMLDivElement> = React.createRef();
     render(): React.ReactNode {
         let currentSectionAlpha = this.currentSection;
+        if(typeof currentSectionAlpha != 'number'){
+            currentSectionAlpha = 0;
+        }
         return <div ref={this.mainContainerRef} style={{ overflowY: 'scroll', height: '100vh', width: '100vw', fontFamily: 'Prompt', }} className='noBar' onScroll={this.onScroll.bind(this)}>
 
 

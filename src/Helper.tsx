@@ -165,7 +165,17 @@ export type ListOptionals<T extends object> = Exclude<{
 export type OnlyOptionals<T extends Object> = {
     [K in ListOptionals<T>]: T[K]
 }
+export async function downloadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((acc, rej) => {
+        let img = new Image();
+        img.addEventListener('load', () => {
+            // alert('loaded')
+            acc(img);
+        });
+        img.src = src;
+    })
 
+}
 
 export function fillDefaults<T extends Object>(input: T, defaults: OnlyOptionals<T>) {
     let out: T = {} as any

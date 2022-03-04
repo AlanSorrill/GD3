@@ -22,11 +22,22 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
         this.state = { transitionAlpha: 0 }
 
     }
+    get alpha_widthExpansion() {
+        return this.fromTopAlpha.alphaInRange(0.1, 0.15)
+    }
+    get alpha_firstExpansion() {
+        return this.fromTopAlpha.alphaInRange(0.15, 0.25, true)
+    }
+    get alpha_SecondExpansion() {
+        return this.fromTopAlpha.alphaInRange(0.25, 0.5, true)
+    }
+
+
     get iconSize() {
         return (typeof this.props.iconSize == 'number') ? this.props.iconSize : 50
     }
     get calcWidth() {
-        return lerp(this.iconSize, this.props.width, this.fromTopAlpha.alphaInRange(0.1,0.15))
+        return lerp(this.iconSize, this.props.width, this.alpha_widthExpansion)
     }
 
     get ontoScreenAlpha() {
@@ -45,10 +56,10 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
         }
 
         let rect = this.containerRef.current.getBoundingClientRect();
-        if(rect.top > window.innerHeight){
+        if (rect.top > window.innerHeight) {
             return 0
         }
-        if(rect.top < 0){
+        if (rect.top < 0) {
             return 1
         }
         return (rect.top / window.innerHeight).oneMinus()
@@ -64,6 +75,8 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
     // }
     slider: React.RefObject<HTMLInputElement> = React.createRef()
     containerRef: React.RefObject<HTMLDivElement> = React.createRef();
+    iconContainerRef: React.RefObject<HTMLDivElement> = React.createRef();
+    airplaneContainer: React.RefObject<HTMLDivElement> = React.createRef();
     render() {
         return <div ref={this.containerRef} style={{
             width: this.calcWidth,
@@ -89,8 +102,13 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
                     height: this.iconSize,
 
                 }}>
-                    <div style={{ float: 'left', width: this.iconSize, height: this.iconSize, backgroundColor: FColor.hsvToRgbString(lerpTuple(fColor.black.toHsv(), fColor.darkMode[11].toHsv(), this.ontoScreenAlpha.alphaInRange(0.5, 1), ['start', 'startToEnd', 'startToEnd'])), }}>
+                    <div ref={this.iconContainerRef} style={{
+                        position: 'relative',
+                        float: 'left', width: this.iconSize, height: this.iconSize,
+                        backgroundColor: FColor.hsvToRgbString(lerpTuple(fColor.black.toHsv(), fColor.darkMode[11].toHsv(), this.ontoScreenAlpha.alphaInRange(0.5, 1), ['start', 'startToEnd', 'startToEnd'])),
+                    }}>
                         <div style={{ width: this.iconSize, height: this.iconSize, backgroundSize: 'contain', backgroundImage: `url("${this.props.iconImage}")` }}></div>
+                        <div ref={this.airplaneContainer} style={{ position: 'absolute', right: 0, bottom: 0, width: this.iconSize * 2, height: this.iconSize * 2 }}></div>
                     </div>
                     <div style={{ position: 'absolute', left: this.iconSize, top: 0, width: this.props.width - this.iconSize }}>
                         <div style={{ height: this.iconSize, display: 'flex', flexDirection: 'column' }}>
@@ -102,11 +120,11 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
                 </div>
 
                 <div>
-                    <CollapseableDiv heightAlpha={this.fromTopAlpha.alphaInRange(0.25, 0.5, true)} style={{}}>
+                    <CollapseableDiv heightAlpha={this.alpha_SecondExpansion} style={{}}>
                         {this.props.children}
                     </CollapseableDiv>
 
-                    <CollapseableDiv heightAlpha={this.fromTopAlpha.alphaInRange(0.15, 0.25, true)} style={{}}>
+                    <CollapseableDiv heightAlpha={this.alpha_firstExpansion} style={{}}>
                         <div style={{ backgroundColor: fColor.darkMode[9].toHexString(), color: fColor.white.toHexString(), padding: this.iconSize * 0.25 }}>
                             {this.props.descriptionText}
                         </div>
