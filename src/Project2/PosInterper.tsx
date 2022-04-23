@@ -28,7 +28,7 @@ export class PosInterper extends React.Component<PosInterper_Props, PosInterper_
             height: lerp(startRect.height, endRect.height, this.props.alpha)
         }}>
             {this.props.children}
-            <div>{startIndex} to {endIndex}</div>
+            {/* <div>{startIndex} to {endIndex}</div> */}
         </div>
     }
 }

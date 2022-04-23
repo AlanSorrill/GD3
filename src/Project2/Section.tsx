@@ -1,5 +1,5 @@
 import React from "react";
-import { Project2Root } from "../Imports";
+import { Project2Root } from "./Imports_Project2";
 
 export abstract class Section {
     name: string

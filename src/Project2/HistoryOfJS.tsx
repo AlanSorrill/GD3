@@ -1,10 +1,11 @@
 import React from "react";
-import { FColor, FColorDirectory, Section, Section_Http, Section_Prehistoric } from "../Imports";
-import { CombineCopyObjects, Device, getCookie, ImportGoogleFont, lerp, lerpTuple, setCookie } from "../Helper";
+import { Examples_Section } from "./Sections/Examples_Section";
+import { FColor, FColorDirectory,  } from "../Imports";
+import { CombineCopyObjects, Device, DeviceType, getCookie, ImportGoogleFont, lerp, lerpTuple, Orientation, setCookie } from "../Helper";
 import { ReactCanvas } from "../ReactCanvas";
 
 import "./HistoryOfJs.css"
-import { Examples_Section as Section_Examples } from "./Sections/Examples_Section";
+import { Http_Section, Jit_Section, MakeEcmaGreatAgain_Section, Node_Section, Section, Section_Prehistoric, Standardization_Section } from "./Imports_Project2";
 if (typeof fColor == 'undefined') {
     window.fColor = new FColorDirectory();
 }
@@ -20,6 +21,13 @@ export interface Project2Root_Props { }
 export interface Project2Root_State {
     scrollAmount: number
     navTransition: number
+
+    dragLastX: number
+    dragLastY: number
+    isDragging: boolean
+
+    orientation: Orientation,
+    deviceType: DeviceType
 }
 export class Project2Root extends React.Component<Project2Root_Props, Project2Root_State> {
     navHeight: number = 50;
@@ -31,17 +39,22 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
     timelineContainerRef: React.RefObject<HTMLDivElement>;
 
 
-    sections: [Section_Prehistoric, Section_Http, Section_Examples]
+    sections: [Section_Prehistoric, Http_Section, Examples_Section, Standardization_Section, Jit_Section, Node_Section, MakeEcmaGreatAgain_Section]
 
     constructor(props: Project2Root_Props) {
         super(props);
         this.sections = [
             new Section_Prehistoric(this),
-            new Section_Http(this),
-            new Section_Examples(this)
+            new Http_Section(this),
+            new Examples_Section(this),
+            new Standardization_Section(this),
+            new Jit_Section(this),
+
+            new Node_Section(this),
+            new MakeEcmaGreatAgain_Section(this)
         ]
-        this.sections.forEach((section: Section, index: number) => { section.index = index })
-        this.state = { scrollAmount: 0, navTransition: 1 }
+        this.sections.forEach(((section: Section, index: number) => { section.index = index }))
+        this.state = { scrollAmount: 0, navTransition: 1, dragLastX: -1, dragLastY: -1, isDragging: false, orientation: Device.getOrientation(), deviceType: Device.getType() }
         this.bannerRef = React.createRef();
         this.contentContainerRef = React.createRef();
         this.navContainerRef = React.createRef();
@@ -213,10 +226,10 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
     mainContainerRef: React.RefObject<HTMLDivElement> = React.createRef();
     render(): React.ReactNode {
         let currentSectionAlpha = this.currentSection;
-        if(typeof currentSectionAlpha != 'number'){
+        if (typeof currentSectionAlpha != 'number') {
             currentSectionAlpha = 0;
         }
-        return <div ref={this.mainContainerRef} style={{ overflowY: 'scroll', height: '100vh', width: '100vw', fontFamily: 'Prompt', }} className='noBar' onScroll={this.onScroll.bind(this)}>
+        return <div ref={this.mainContainerRef} style={{ overflowY: 'scroll', overflowX: 'hidden', height: '100vh', width: '100vw', fontFamily: 'Prompt', }} className='noBar' onScroll={this.onScroll.bind(this)}>
 
 
 
@@ -252,7 +265,7 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
                         </div>
                     </div>
 
-                    <div style={{ position: 'relative', top: 0 - this.navHeight, backgroundColor: fColor.purple.accent1.toHexString() }}>
+                    <div style={{ position: 'relative', top: 0 - this.navHeight, backgroundColor: fColor.black.toHexString() }}>
 
                         {this.sections.map((section: Section, index: number) => {
                             return <div key={index} ref={section.containerElement}  >
@@ -262,6 +275,21 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
                                 {/* <br style={{ height: this.col1 }} /> */}
                             </div>
                         })}
+                        <div style={{
+                            display: 'flex'
+                        }}>
+                            <div style={{
+                                width: '50%',
+                                textAlign: "left",
+                                padding: Device.switch({ desktopHorizontal: 64, phoneHorizontal: 8 }),
+                                color: fColor.white.toHexStr()
+                            }}>
+                                Sources:<br />
+                                <a href="https://www.youtube.com/watch?v=krB0enBeSiE">Interview with Brendan Eich</a><br />
+                                <a href="https://www.w3schools.com/js/js_history.asp">Timeline of Versions</a>
+                            </div>
+                            <div style={{ flexGrow: 1 }}></div>
+                        </div>
                     </div>
                     <div style={{ position: 'fixed', top: this.calcTop, right: 0, bottom: 0, width: this.navHeight, backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat' }} >
                         {/* // backgroundImage: 'url("project2/test.png")' */}
@@ -279,7 +307,8 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
                                     }} />
 
                                 ))
-                                }
+                                } 
+
                             </div>
                         </div>
                     </div>
@@ -288,10 +317,10 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
                 {/* {Device.isPhone ? null : <div style={{ width: this.col1 }}></div>} */}
             </div>
 
-            <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 1000, backgroundColor: fColor.darkMode[3].toHexString(), color: fColor.lightText[1].toHexString() }}>{currentSectionAlpha.toFixed(2)}</div>
+            {/* <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 1000, backgroundColor: fColor.darkMode[3].toHexString(), color: fColor.lightText[1].toHexString() }}>{currentSectionAlpha.toFixed(2)}</div> */}
         </div >
     }
-    
+
     autoScrolled: boolean = false
     componentDidMount(): void {
         // this.mainContainerRef.current.addEventListener('scroll',(evt)=>{console.log(evt)})
@@ -299,17 +328,71 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
         let scroll = Number(scrollCookie == null ? 0 : scrollCookie)
         console.log(`Auto Scrolling to ${scrollCookie}`)
         let ths = this;
-        setTimeout(()=>{ths.mainContainerRef.current.scrollTo(0, scroll);}, 500)
+        setTimeout(() => { ths.mainContainerRef.current.scrollTo(0, scroll); }, 500)
         this.autoScrolled = true;
         window.addEventListener('mousewheel', (evt: any) => {
-
-            if (this.mainContainerRef.current) {
-                // console.log(`Synthetic scrollby ${evt.deltaY}`, event)
-                this.mainContainerRef.current.scrollBy(0, evt.deltaY)
-            }
+            ths.addScroll(evt.deltaY)
         })
-       
-        
+        window.addEventListener('touchstart', (evt) => {
+            ths.onPanStart(evt);
+        })
+        window.addEventListener('dragstart', (evt) => {
+            ths.onPanStart(evt);
+        });
+        window.addEventListener('touchend', (evt) => {
+            ths.onPanEnd(evt);
+        })
+        window.addEventListener('dragend', (evt) => {
+            ths.onPanEnd(evt);
+        });
+        window.addEventListener('drag', (evt) => {
+            ths.onPan(evt);
+        });
+        window.addEventListener('touchmove', (evt) => {
+            ths.onPan(evt);
+        });
+
+        window.addEventListener('resize', (evt) => {
+            ths.onResize(evt)
+        })
+    }
+    private onResize(evt: UIEvent) {
+
+        console.log(Device.getTypeAndOrientation())
+        this.setState({ orientation: Device.getOrientation(), deviceType: Device.getType() })
+    }
+    private onPanStart(evt: TouchEvent | DragEvent | Touch) {
+        if (evt instanceof DragEvent || evt instanceof Touch) {
+            this.setState({ dragLastX: evt.clientX, dragLastY: evt.clientY, isDragging: true })
+
+        } else {
+            this.onPanStart(evt.touches[0]);
+
+        }
+    }
+    private onPan(evt: TouchEvent | DragEvent | Touch) {
+        if (evt instanceof DragEvent || evt instanceof Touch) {
+            let deltaX = evt.clientX - this.state.dragLastX
+            let deltaY = (evt.clientY - this.state.dragLastY) * -1
+            //  console.log(`Pan ${deltaX}, ${deltaY}`)
+            this.setState({ dragLastX: evt.clientX, dragLastY: evt.clientY, isDragging: true })
+            this.addScroll(deltaY);
+
+        } else {
+            this.onPan(evt.touches[0]);
+
+        }
+    }
+    private onPanEnd(evt: TouchEvent | DragEvent) {
+        if (evt instanceof DragEvent) {
+            evt.clientX
+        }
+    }
+    private addScroll(amount: number) {
+        if (this.mainContainerRef.current) {
+            // console.log(`Synthetic scrollby ${amount}`)
+            this.mainContainerRef.current.scrollBy(0, amount)
+        }
     }
     bodyText(count: number = 8) {
         let out = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum"

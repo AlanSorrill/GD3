@@ -5,6 +5,27 @@ import BTree from 'sorted-btree';
 
 export type DeviceType = 'phone' | 'tablet' | 'desktop'
 export type Orientation = 'vertical' | 'horizontal'
+export function Oposite(orientation: Orientation) {
+    if (orientation == 'vertical') {
+        return 'horizontal'
+    } else {
+        return 'vertical'
+    }
+}
+export type DeviceTypeAndOrientation = `${DeviceType}${Capitalize<Orientation>}`
+export type TypeAndOrientationMap<T> = {
+    [key in DeviceTypeAndOrientation]: T;
+};
+export function NextBiggerDevice(device: DeviceType) {
+    switch (device) {
+        case 'desktop': return 'desktop';
+        case 'tablet': return 'desktop';
+        case 'phone': return 'tablet'
+    }
+}
+export function typeAndOrientation(type: DeviceType, orientation: Orientation): DeviceTypeAndOrientation {
+    return `${type}${orientation.capitolizeFirstLetter()}` as any
+}
 export class Device {
     static isPhone() {
         return window.innerWidth < 600
@@ -27,18 +48,43 @@ export class Device {
             return 'desktop'
         }
     }
+    static getTypeAndOrientation(): DeviceTypeAndOrientation {
+        return typeAndOrientation(this.getType(), this.getOrientation());
+
+    }
     static getOrientation(): Orientation {
         return (window.innerWidth < window.innerHeight) ? 'vertical' : 'horizontal'
     }
-    static switch(desktop: number, tablet: number, phone: number) {
-        switch (this.getType()) {
-            case 'desktop':
-                return desktop;
-            case 'tablet':
-                return tablet;
-            case 'phone':
-                return phone;
+
+    static switch<T>(map: Optionalize<TypeAndOrientationMap<T>>, defaultValue: T = null): T | null {
+        let deviceType = this.getType();
+        let orientation = this.getOrientation();
+        let key = `${deviceType}${orientation.capitolizeFirstLetter()}`
+        // console.log(key)
+        if (key in map) {
+            return map[key];
         }
+        key = `${deviceType}${Oposite(orientation).capitolizeFirstLetter()}`
+        if (key in map) {
+            return map[key]
+        }
+        key = `${NextBiggerDevice(deviceType)}${orientation.capitolizeFirstLetter()}`
+        if (key in map) {
+            return map[key]
+        }
+        key = `${NextBiggerDevice(deviceType)}${Oposite(orientation).capitolizeFirstLetter()}`
+        if (key in map) {
+            return map[key]
+        }
+        key = `${NextBiggerDevice(NextBiggerDevice(deviceType))}${orientation.capitolizeFirstLetter()}`
+        if (key in map) {
+            return map[key]
+        }
+        key = `${NextBiggerDevice(NextBiggerDevice(deviceType))}${Oposite(orientation).capitolizeFirstLetter()}}`
+        if (key in map) {
+            return map[key]
+        }
+        return null;
     }
 }
 export type OptFunc<T> = T | (() => T)
@@ -68,6 +114,7 @@ declare global {
 
     interface String {
         replaceAll(a: string, b: string): string;
+        capitolizeFirstLetter(): Capitalize<string>;
     }
     interface Array<T> {
         mapWhile<B>(predicate: (value: T) => boolean, transform: (value: T) => B): B[]
@@ -82,8 +129,18 @@ declare global {
         oneMinus(): number
         isEven(): boolean
     }
-
+    // interface Object {
+    //     getWithDefault<KEY extends keyof this>(key: KEY, defaultValue: this[KEY]): this[KEY]
+    // }
 }
+// if (typeof Object.prototype.getWithDefault == 'undefined') {
+//     Object.prototype.getWithDefault = function (key: string, defaultValue: any) {
+//         if (typeof this[key] != 'undefined') {
+//             return this[key]
+//         }
+//         return defaultValue;
+//     }
+// }
 if (typeof Number.prototype.isEven == 'undefined') {
     Number.prototype.isEven = function () {
         return this % 2 == 0;
@@ -138,6 +195,13 @@ if (typeof Array.prototype.mapWhile == 'undefined') {
         return out;
     }
 }
+export type Time = number | Date
+export function TimeToISO(time: Time): string {
+    if (typeof time == 'number') {
+        return new Date(time).toISOString();
+    }
+    return time.toISOString();
+}
 if (typeof Array.prototype.forMap == 'undefined') {
     Array.prototype.forMap = function (transform, startValue, predicate, update = 1) {
         let out = []
@@ -154,9 +218,34 @@ if (typeof String.prototype.replaceAll == 'undefined') {
         return this.split(a).join(b);
     };
 }
+if (typeof String.prototype.capitolizeFirstLetter == 'undefined') {
+    String.prototype.capitolizeFirstLetter = function () {
+        if (this.length == 0) {
+            return this;
+        } else if (this.length == 1) {
+            return (this as string).toUpperCase()
+        } else {
+            return `${this[0].toUpperCase()}${(this as string).substring(1)}`
+        }
+    }
+}
+export function KeyToString(key: string | number | symbol): string {
+    if (typeof key == 'string' || typeof key == 'number') {
+        return key + "";
+    }
+    return key.toString();
+
+}
+export type InterfaceOfKeys<T extends string[]> = {
+    [prop in keyof T]?: any
+}
 export type Optionalize<Type> = {
     [Property in keyof Type]?: Type[Property]
 }
+export type DeOptionalize<Type> = {
+    [Property in keyof Type]-?: Type[Property]
+}
+export type KeysOf<T> = (keyof T)[]
 export type ListOptionals<T extends object> = Exclude<{
     [K in keyof T]: T extends Record<K, T[K]>
     ? never
@@ -176,7 +265,9 @@ export async function downloadImage(src: string): Promise<HTMLImageElement> {
     })
 
 }
-
+export function htmlLinesAndTabs(text: string) {
+    return text.split('\n').insertBetweenEach(<br />).map((value: string | React.ReactElement) => (typeof value == 'string' ? value.split('\t').insertBetweenEach(<span>&nbsp;&nbsp;&nbsp;&nbsp;</span>) : value))
+}
 export function fillDefaults<T extends Object>(input: T, defaults: OnlyOptionals<T>) {
     let out: T = {} as any
     for (let key in defaults) {

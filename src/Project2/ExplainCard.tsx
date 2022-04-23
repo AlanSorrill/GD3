@@ -1,5 +1,5 @@
 import React from "react";
-import { interpolate, lerp, lerpTuple } from "../Helper";
+import { Device, interpolate, lerp, lerpTuple } from "../Helper";
 import { FColor } from "../Imports";
 import { CollapseableDiv } from "./CollapseableDiv";
 
@@ -23,13 +23,13 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
 
     }
     get alpha_widthExpansion() {
-        return this.fromTopAlpha.alphaInRange(0.1, 0.15)
+        return this.topFromTopAlpha.alphaInRange(0.15, 0.2)
     }
     get alpha_firstExpansion() {
-        return this.fromTopAlpha.alphaInRange(0.15, 0.25, true)
+        return this.topFromTopAlpha.alphaInRange(0.2, 0.5, true)
     }
     get alpha_SecondExpansion() {
-        return this.fromTopAlpha.alphaInRange(0.25, 0.5, true)
+        return this.topFromTopAlpha.alphaInRange(0.5, 0.9, true)
     }
 
 
@@ -50,7 +50,7 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
         }
         return 1
     }
-    get fromTopAlpha() {
+    get topFromTopAlpha() {
         if (!this.containerRef.current) {
             return -1;
         }
@@ -63,6 +63,20 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
             return 1
         }
         return (rect.top / window.innerHeight).oneMinus()
+    }
+    get bottomFromBottomAlpha(){
+        if (!this.containerRef.current) {
+            return -1;
+        }
+
+        let rect = this.containerRef.current.getBoundingClientRect();
+        if (rect.bottom > window.innerHeight) {
+            return 1
+        }
+        if (rect.bottom < 0) {
+            return 0
+        }
+        return (rect.bottom / window.innerHeight).oneMinus()
     }
     // get alpha() {
     //     if (this.props.transitionAlpha) {
@@ -81,7 +95,7 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
         return <div ref={this.containerRef} style={{
             width: this.calcWidth,
             textAlign: 'center',
-            marginLeft: 'auto', marginRight: 'auto', marginBottom: this.iconSize * 2
+            marginLeft: Device.isTabletOrPhone() && this.alpha_widthExpansion == 1 ? '0px' : 'auto', marginRight: 'auto', marginBottom: this.iconSize * 2
         }}>
             {/* <input style={{ marginLeft: 'auto', marginRight: 'auto' }} type="range" onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 //({ transitionAlpha: Number(event.target.value) / 100 })
@@ -89,7 +103,7 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
             <div style={{
                 textAlign: 'left',
                 width: this.calcWidth,
-                backgroundColor: FColor.hsvToRgbString(lerpTuple(fColor.black.toHsv(), fColor.darkMode[5].toHsv(), this.ontoScreenAlpha.alphaInRange(0.5, 1), ['start', 'startToEnd', 'startToEnd'])),
+                backgroundColor: FColor.hsvToRgbString(lerpTuple(fColor.black.toHsv(), fColor.darkMode[5].toHsv(), this.topFromTopAlpha.alphaInRange(0.1, 0.2), ['start', 'startToEnd', 'startToEnd'])),
                 borderWidth: interpolate([[0, 0], [0.5, 3], [1, 0]], this.ontoScreenAlpha),
                 borderRadius: lerp(0, 10, this.ontoScreenAlpha.alphaInRange(0, 0.5)),
                 borderColor: fColor.darkMode[11].toHexString(),
@@ -105,7 +119,7 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
                     <div ref={this.iconContainerRef} style={{
                         position: 'relative',
                         float: 'left', width: this.iconSize, height: this.iconSize,
-                        backgroundColor: FColor.hsvToRgbString(lerpTuple(fColor.black.toHsv(), fColor.darkMode[11].toHsv(), this.ontoScreenAlpha.alphaInRange(0.5, 1), ['start', 'startToEnd', 'startToEnd'])),
+                        backgroundColor: FColor.hsvToRgbString(lerpTuple(fColor.black.toHsv(), fColor.darkMode[11].toHsv(), this.topFromTopAlpha.alphaInRange(0.15, 0.2), ['start', 'startToEnd', 'startToEnd'])),
                     }}>
                         <div style={{ width: this.iconSize, height: this.iconSize, backgroundSize: 'contain', backgroundImage: `url("${this.props.iconImage}")` }}></div>
                         <div ref={this.airplaneContainer} style={{ position: 'absolute', right: 0, bottom: 0, width: this.iconSize * 2, height: this.iconSize * 2 }}></div>
@@ -122,11 +136,13 @@ export class ExplainCard extends React.Component<ExplainCard_Props, ExplainCard_
                 <div>
                     <CollapseableDiv heightAlpha={this.alpha_SecondExpansion} style={{}}>
                         {this.props.children}
+                        
                     </CollapseableDiv>
 
                     <CollapseableDiv heightAlpha={this.alpha_firstExpansion} style={{}}>
                         <div style={{ backgroundColor: fColor.darkMode[9].toHexString(), color: fColor.white.toHexString(), padding: this.iconSize * 0.25 }}>
                             {this.props.descriptionText}
+                            
                         </div>
                     </CollapseableDiv>
                 </div>

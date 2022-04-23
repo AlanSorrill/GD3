@@ -1,4 +1,6 @@
 import React, { RefObject } from "react";
+import { Device } from "../../Helper";
+import { htmlLinesAndTabs } from "../../Imports";
 import { ExplainCard } from "../ExplainCard";
 import { Project2Root } from "../HistoryOfJS";
 import { PosInterper } from "../PosInterper";
@@ -28,17 +30,23 @@ export class Examples_Section extends Section {
         }
         return this.explainCardRefs.get(name);
     }
+    get cardWidth() {
+        return Device.switch({ desktopHorizontal: this.root.col4, tabletHorizontal: this.root.col10, phoneVertical: this.root.col12 - this.root.navHeight });
+    }
+    get iconSize() {
+        return Device.switch({ desktopHorizontal: this.root.col1 * 0.5, tabletHorizontal: this.root.col1 * 0.75, phoneVertical: this.root.col2 })
+    }
     render(alpha: number) {
-        return <div style={{ height: window.innerHeight * 3, backgroundColor: fColor.black.toHexString() }}>
-            <div style={{ color: fColor.red.base.toHexString() }}>{alpha - (this.index - 1)}</div>
-            <div style={{ width: '100%', height: window.innerHeight, display: 'flex', flexDirection: 'column' }}>
+        return <div style={{ backgroundColor: fColor.black.toHexString() }}>
+            {/* <div style={{ color: fColor.red.base.toHexString() }}>{alpha - (this.index - 1)}</div> */}
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', marginRight: Device.isTabletOrPhone() ? this.root.navHeight : 0 }}>
                 <div style={{ flexGrow: 1 }} />
 
-                <div style={{ marginLeft: 'auto', marginRight: 'auto' }}>
+                <div style={{ marginLeft: Device.isTabletOrPhone() ? '0px' : 'auto', marginRight: 'auto' }}>
                     <ExplainCard
                         ref={this.getExplainCardRef('thread')}
-                        iconSize={this.root.col1 / 2}
-                        width={this.root.col4}
+                        iconSize={this.iconSize}
+                        width={Device.switch({desktopHorizontal: this.root.col4, tabletHorizontal: this.root.col10, phoneVertical: this.root.col12})}
 
                         iconImage={"./project2/icons/CurlyBrackets.png"}
                         titleText={"A Single Thread"}
@@ -49,30 +57,40 @@ export class Examples_Section extends Section {
                     </ExplainCard>
                     <ExplainCard
                         ref={this.getExplainCardRef('functions')}
-                        iconSize={this.root.col1 / 2}
-                        width={this.root.col4}
+                        iconSize={this.iconSize}
+                        width={this.cardWidth}
 
                         iconImage={"./project2/icons/function.png"}
                         titleText={"First Class Functions"}
                         descriptionText={"Inspired by functional research languages, functions are just another data type to be stuffed inside variables."} >
                         <div style={{ fontFamily: 'Cascadia Code', color: fColor.white.toHexString(), padding: this.root.col1 / 2 * 0.25 }}>
-                            {`if(stuff >= things){\n}`.split('\n').insertBetweenEach(<br />)}
+                            {htmlLinesAndTabs(`function doTwice(inputFunc){
+\tinputFunc();
+\tinputFunc();
+}
+function laugh(){
+\tconsole.log(“ha”);
+}
+doTwice(laugh);`)}
                         </div>
                     </ExplainCard>
                     <ExplainCard
-                        iconSize={this.root.col1 / 2}
-                        width={this.root.col4}
+                        iconSize={this.iconSize}
+                        width={this.cardWidth}
                         ref={this.getExplainCardRef('types')}
                         iconImage={"./project2/icons/transgender.png"}
                         titleText={"Dynamic & Implicit Types"}
                         descriptionText={"The implicit type system was friendly to novices, and allowed designers to focus on business logic rather than which number format to use. "} >
                         <div style={{ fontFamily: 'Cascadia Code', color: fColor.white.toHexString(), padding: this.root.col1 / 2 * 0.25 }}>
-                            {`if(stuff >= things){\n}`.split('\n').insertBetweenEach(<br />)}
+                            {htmlLinesAndTabs(`var myNumber = 5;\n
+var myText = “stuff and things”;\n
+var person = new Person();\n
+var answer = addNumbers(9, 10);`)}
                         </div>
                     </ExplainCard>
                     <ExplainCard
-                        iconSize={this.root.col1 / 2}
-                        width={this.root.col4}
+                        iconSize={this.iconSize}
+                        width={this.cardWidth}
                         ref={this.getExplainCardRef('thread')}
                         iconImage={"./project2/icons/line_style.png"}
                         titleText={"A Single Thread"}
@@ -82,8 +100,8 @@ export class Examples_Section extends Section {
                         </div>
                     </ExplainCard>
                     <ExplainCard
-                        iconSize={this.root.col1 / 2}
-                        width={this.root.col4}
+                        iconSize={this.iconSize}
+                        width={this.cardWidth}
                         ref={this.getExplainCardRef('interpreted')}
                         iconImage={"./project2/icons/gavel.png"}
                         titleText={"Interpreted"}
@@ -93,39 +111,9 @@ export class Examples_Section extends Section {
                         </div>
                     </ExplainCard>
 
-                    <ExplainCard
-                        iconSize={this.root.col1 / 2}
-                        width={this.root.col4}
-                        ref={this.getExplainCardRef('success')}
-                        iconImage={""}
-                        titleText={"Interpreted"}
-                        descriptionText={"The language was a success, as it allowed web developers to create things never possible before. However it had some warts, and one major disadvantage: speed. Being an interpreted language, it was too slow to handle things like games and video streaming. For the time being, these tasks would be handled by Java applets or Flash plugins. "} >
-                        <div style={{ fontFamily: 'Cascadia Code', color: fColor.white.toHexString(), padding: this.root.col1 / 2 * 0.25 }}>
-
-                        </div>
-                    </ExplainCard>
-
-                    <ExplainCard
-                        iconSize={this.root.col1 / 2}
-                        width={this.root.col4}
-                        ref={this.getExplainCardRef('socialize')}
-                        iconImage={"./project2/euStars.png"}
-                        titleText={"European Socialization"}
-                        descriptionText={"A year after its debut in Netscape2, it’s design was turned over to the European Computer Manufacturers Association (ECMA) for standardization; Giving Javascript it’s technical name, EcmaScript. This was an important step, as it democratized the design of the language and allowed other browsers to implement the same language. The ECMA committee is mostly composed of representatives from the browser vendors and other large tech companies; Such as Google, Microsoft, Apple, Mozilla, Adobe, and Intel. "} >
-                        <div style={{ fontFamily: 'Cascadia Code', color: fColor.white.toHexString(), padding: this.root.col1 / 2 * 0.25 }}>
-
-                        </div>
-                    </ExplainCard>
-                    <PosInterper alpha={this.getExplainCardRef('socialize')?.current?.alpha_firstExpansion} frames={[
-                        [0, this.getExplainCardRef('success')?.current?.airplaneContainer],
-                        [0, this.getExplainCardRef('socialize')?.current?.airplaneContainer]]}>
-                        <Spritesheet imageSrc={"./project2/spritesheet.png"} columns={5} rows={5} style={{ borderStyle: 'solid', borderWidth: 2, borderColor: '#00FF00', width: '100%', height: '100%' }} 
-                        currentFrame={Math.round(this.getExplainCardRef('socialize')?.current?.alpha_firstExpansion * 20) % 21}
-                         />
-                    </PosInterper>
-
-    
                     
+
+
                 </div>
                 <div style={{ flexGrow: 1 }} />
             </div>
