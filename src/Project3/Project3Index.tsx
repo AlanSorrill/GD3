@@ -3,23 +3,31 @@ import ReactDom from 'react-dom'
 import { CaronaRoot } from './CaronaRoot';
 import { ensureFColor } from '../Imports'
 import { ImportGoogleFont } from '../Helper';
-import { DeWonder, WonderRequest } from '../../srcFunctions/common/WonderData';
+import { Database, DeWonder, WonderRequest } from '../../srcFunctions/common/WonderData';
+import './Project3Styles.css'
+
+import { XmlToJson } from '../../srcFunctions/common/FBF_Helpers';
+import { WonderClient } from './WonderClient';
 
 // import * as soda from 'soda-js'
 ensureFColor();
 ImportGoogleFont('Ubuntu:wght@400;700')
 
 window['WonderRequest'] = WonderRequest;
+window['WonderClient'] = WonderClient
 window['DeWonder'] = DeWonder;
+window['Database'] = new Database()
+ 
+window['XmlToJson'] = XmlToJson
 // window["sodaConsumer"] = new soda.Consumer("explore.data.gov")
 let mainContainer = document.getElementById('root')
-if(!mainContainer){
+if (!mainContainer) {
     mainContainer = document.createElement('div');
     document.body.append(mainContainer);
     mainContainer.style.position = 'absolute'
     mainContainer.style.left = '0px'
     mainContainer.style.right = '0px'
-    mainContainer.style.top = '0px'
+    mainContainer.style.top = '0px' 
     mainContainer.style.bottom = '0px'
 }
 document.body.style.overflowY = 'hidden'

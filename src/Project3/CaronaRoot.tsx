@@ -1,18 +1,28 @@
 import React from "react";
 import { CaronaCasesAndDeathsOverTimeRow, SodaDB, SodaDBDirectory } from "./SodaDB";
 import "./RonaDB"
+import { RedPillIndex } from "./RedPill/RedPillIndex";
 export interface CaronaRoot_Props { }
 export interface CaronaRoot_State {
     values: Array<CaronaCasesAndDeathsOverTimeRow>
+    redPill: boolean
 }
 export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_State> {
     constructor(props: CaronaRoot_Props) {
         super(props);
-        this.state = { values: [] }
+        this.state = { values: [], redPill: false }
     }
 
+    componentDidMount(): void {
+        if(searchParamObj['redpill'] == 'true'){
+            this.setState({redPill: true})
+        }
+    }
     render() {
         let ths = this;
+        if(this.state.redPill){
+            return <RedPillIndex />
+        }
         return <div style={{
             backgroundColor: fColor.white.toHexStr(),
             color: fColor.red.lighten1.toHexStr(),
@@ -39,7 +49,22 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
                     // let query = consumer.query().withDataset('9mfq-cb36').limit(10).getRows().on('success',
                     //     (rows) => console.log(rows)).on('error',
                     //         (err) => console.log(err))
-                }}>Test</div></div>
+                }}>Test</div>
+                <div style={{
+                    cursor: 'pointer', borderRadius: 4, overflow: 'hidden', display: 'inline', padding: 8,
+                    backgroundColor: fColor.red.base.toHexStr(), color: fColor.white.toHexStr(), fontSize: 32
+
+                }} onClick={async () => {
+                    //9hhd-mqs2 CDC Wonder
+                    //9mfq-cb36 COVID
+
+                    ths.setState({ redPill: true })
+                    // let consumer = window["sodaConsumer"]; 
+                    // let query = consumer.query().withDataset('9mfq-cb36').limit(10).getRows().on('success',
+                    //     (rows) => console.log(rows)).on('error',
+                    //         (err) => console.log(err))
+                }}>RedPill</div>
+            </div>
 
             {/* <div style={{ flexGrow: 1, width: '100vw', backgroundColor: fColor.purple.base.toHexStr(), overflowY: 'scroll' }}>
                 {<TempRowLabels row={this.state.values.length > 0 ? Object.keys(this.state.values[0]) : []} />}

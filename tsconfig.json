@@ -9,7 +9,11 @@
         "inlineSourceMap": true,
         "outDir": "clientBuild",
         "skipLibCheck": true,
-        "declaration": true
+        "declaration": true,
+        "paths":{
+            "timers": ["./node_modules/timers-browserify"],
+            "stream": ["./node_modules/stream-browserify"]
+        }
     },
     "include": ["src", "srcFunctions"],
     "lib": ["es2015"]

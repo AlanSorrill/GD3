@@ -46,6 +46,12 @@
     <script>
         let searchParams = new URLSearchParams(window.location.search)
         let project = searchParams.get('project');
+
+        let searchParamObj = {}
+        for (let entry of searchParams.entries()) {
+            searchParamObj[entry[0].toLowerCase()] = entry[1]
+        }
+
         if (project == null) {
             project = 1;
         }
@@ -68,6 +74,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet"> -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Condensed&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.typekit.net/mhf5qem.css">
 </body>
 
 </html>

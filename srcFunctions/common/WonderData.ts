@@ -3,7 +3,8 @@
 if (true) {
   global.fetch = require('node-fetch')
 }
-import { replaceAllInString } from './FBF_Helpers';
+import BTree from 'sorted-btree';
+import { concactinate, flatten, isAllTrue as isAnyTrue, replaceAllInString, XmlToJson } from './FBF_Helpers';
 
 
 // export type WonderQueryParamName = (keyof typeof WonderQueryParam) 
@@ -45,6 +46,7 @@ export enum WonderQueryParam {
 
   //FIV
   YearAndMonth = 'D76.V1'
+
 }
 export type WonderQueryParam_CauseOfDeathBy = 'ICD10Codes' | 'ICD10_130CauseListInfants' | 'DrugAlcoholInducedCauses' | 'ICD10_113CauseList' | 'InjuryIntent'
 export type WonderQueryParam_LocationBy = 'YearAndMonth' | 'CensusRegions' | 'StatesAndCounties'
@@ -141,15 +143,26 @@ let WonderQueryParam_Reversed_Cache = null
 // }
 export function DeWonder(text: string) {
   let tmp = text;
-  for (let group of AllWonderParams) {
+  let allTranslations: Array<[groupName: string, itemName: string, itemValue: string]> = []
+  for (let groupName in AllWonderParams) {
+    let group = AllWonderParams[groupName]
+
     for (let key in group) {
-      console.log(`Replacing ${group[key]} with ${key}`)
-      tmp = replaceAllInString(tmp, group[key], key)
+      allTranslations.push([groupName, group[key], key])
     }
   }
 
-  return tmp;
+  allTranslations = allTranslations.sort((a, b) => (b[1].length - a[1].length))
+  for (let item of allTranslations) {
+    // console.log(`Replacing ${group[key]} with ${key}`)
+    tmp = replaceAllInString(tmp, `F_${item[1]}`, `F_Only_${item[2]}`)
+    tmp = replaceAllInString(tmp, `I_${item[1]}`, `I_Only_${item[2]}`)
+    tmp = replaceAllInString(tmp, `V_${item[1]}`, `V_Only_${item[2]}`)
+    tmp = replaceAllInString(tmp, item[1], item[2])
+  }
+  return tmp
 }
+
 
 // export type WonderQueryParam = WonderQueryParams_Utility | WonderQueryParams_Causes | WonderQueryParams_Demographic | WonderQueryParams_Location | WonderQueryParams_Time
 
@@ -189,14 +202,12 @@ export class WonderRequest {
       'O_precision': ['1'],
       'O_rate_per': ['100000'],
       'O_show_supressed': ['true'],
-      'O_show_totals': ['true'],
+      'O_show_totals': ['false'],
       'O_show_zeros': ['true'],
       'O_timeout': ['600'],
       'O_title': ['Example1'],
       'O_javascript': ['off'],
       'O_ucd': [WonderQueryParam_Include.ICD10Codes],
-
-
 
       'F_D76.V1': [WonderQueryParam_Util.All],//Include all dates
       'F_D76.V10': [WonderQueryParam_Util.All],//Include all Census Regions
@@ -221,12 +232,14 @@ export class WonderRequest {
       'V_D76.V24': [WonderQueryParam_Util.All],//Weekdays
       'V_D76.V25': [],//Drug/Alcohol Induced Causes
       'F_D76.V27': [WonderQueryParam_Util.All],//Include all HHSRegions
+
+
       'O_show_suppressed': ['true'],
 
 
 
       //values for non-standard age-adjusted rates
-      'VM_D76.M6_D76.V1_S': [WonderQueryParam_Util.All],//years
+      'VM_D76.M6_D76.V1_S': ['2004'],// [WonderQueryParam_Util.All],//years
       'VM_D76.M6_D76.V17': [WonderQueryParam_Util.All],//Hispanic Origin
       'VM_D76.M6_D76.V7': [WonderQueryParam_Util.All],//Gender
       'VM_D76.M6_D76.V8': [WonderQueryParam_Util.All],//Race
@@ -243,12 +256,16 @@ export class WonderRequest {
       'saved_id': [],
       'stage': ['request']
     }
+    this.defaultFIVParams = {
+
+    }
 
   }
   params: Map<string, string[]> = new Map()
   groupByCount: number = 0;
   groupByCountLimit: number = 5
   defaultParams: { [key: string]: string[] }
+  defaultFIVParams: { [key: (`F_${string}` | `I_${string}` | `V_${string}`)]: string[] }
   addParam(name: string, value: string | string[]) {
     if (typeof value == 'string') {
       this.params.set(name, [value])
@@ -306,6 +323,12 @@ export class WonderRequest {
     this.addParam(`O_age`, [WonderQueryParam_AgeGroup[groupName]])
     return this;
   }
+  filterByYear(years: WonderQueryParam_Util.All | YearString[]) {
+    //let val = (typeof years == 'string') ? years : years.map(y => `${y} (${y})`).join(' ')
+   // return this.addParam('I_D76.V1', val);
+   return this.addParam(`F_D76.V1`,years)
+
+  }
   groupBy(groupByName: (keyof typeof WonderQueryParam_GroupBy) | 'None') {
     if (this.groupByCount >= this.groupByCountLimit) {
       throw new Error(`Cannot group by more than ${this.groupByCountLimit}`)
@@ -324,58 +347,124 @@ export class WonderRequest {
     this.setDefaults();
     return this.params
   }
+  private alternatives(k: string) {
+    if (k.length < 3) {
+      return [k];
+    }
+    let start = k.substring(0, 2)
+    let rest = k.substring(2)
+    switch (start) {
+      case 'F_':
+        return [k, `I_${rest}`, `V_${rest}`]
+      case 'I_':
+        return [k, `F_${rest}`, `V_${rest}`]
+      case 'V_':
+        return [k, `I_${rest}`, `F_${rest}`]
+      default:
+        return [k]
+    }
+  }
   setDefaults() {
+    let ths = this;
     for (let key in this.defaultParams) {
-      if (!this.params.has(key)) {
-        console.log(`Defaulting ${key} to ${this.defaultParams[key]}`)
+      if (!(isAnyTrue(ths.alternatives(key).map((altKey) => {
+        console.log(`Checking alternative ${altKey}`)
+        if (ths.params.has(altKey)) {
+          console.log(`----Alt Found ${altKey}`)
+        }
+        return ths.params.has(altKey)
+      })))) {
+
+        console.log(`Defaulting ${key} (${DeWonder(key)}) to ${this.defaultParams[key]}`)
         this.params.set(key, this.defaultParams[key]);
       }
     }
   }
   toString() {
     console.log(`Building query string`)
-
+    let ths = this;
     let toProcess: [string, string[]][] = []
     let processed: Map<string, boolean> = new Map()
     let name: string
-    for (let i = 1; i <= 5; i++) {
-      name = `B_${i}`
-      toProcess.push([name, this.params.has(name) ? this.params.get(name) : [WonderQueryParam_Util.None]])
-      processed.set(name, true)
-    }
-    for (let key of this.params.keys()) {
-      if (key.startsWith('M_')) {
-        toProcess.push([key, this.params.get(key)])
-        processed.set(key, true)
-      }
-    }
 
-    for (let key of this.params.keys()) {
-      if (!processed.has(key)) {
-        toProcess.push([key, this.params.get(key)])
+    let keyList: ConsumableLinkedList<string> = new ConsumableLinkedList(this.params.keys())
+    keyList.consume((key: string) => {
+      if (key.startsWith('B_')) {
+        toProcess.push([key, ths.params.get(key)])
+        return true;
       }
-    }
+      return false;
+    })
+    // for (let i = 1; i <= 5; i++) {
+    //   name = `B_${i}`
+    //   toProcess.push([name, this.params.has(name) ? this.params.get(name) : [WonderQueryParam_Util.None]])
+    //   processed.set(name, true)
+    // }
+    // for (let key of this.params.keys()) {
+    //   if (key.startsWith('M_')) {
+    //     toProcess.push([key, this.params.get(key)])
+    //     processed.set(key, true)
+    //   }
+    // }
+    keyList.consume((key: string) => {
+      if (key.startsWith('M_')) {
+        toProcess.push([key, ths.params.get(key)])
+        return true;
+      }
+      return false;
+    })
+    keyList.consume((key: string) => {
+      if (key.startsWith('O_')) {
+        toProcess.push([key, ths.params.get(key)])
+        return true;
+      }
+      return false;
+    })
+    keyList.consume((key: string) => {
+      if (key.startsWith('F_') || key.startsWith('I_') || key.startsWith('V_')) {
+        toProcess.push([key, ths.params.get(key)])
+        return true;
+      }
+      return false;
+    })
+
+    keyList.consume((key: string) => {
+      console.log(`Uordered parameter ${key}`)
+      toProcess.push([key, ths.params.get(key)])
+      return true;
+
+    })
+
+    // for (let key of this.params.keys()) {
+    //   if (!processed.has(key)) {
+    //     toProcess.push([key, this.params.get(key)])
+    //   }
+    // }
+    console.log(`Full Query:\n${toProcess.map((param: [string, string[]]) => `${param[0]}(${DeWonder(param[0])}) = \n${param[1].join('\n--')}\n`)}`)
     return toProcess.map((param: [string, string[]], index: number) => {
-      console.log(`Mapping ${param[0]} to `, param[1])
+      console.log(`Mapping ${param[0]} (${DeWonder(param[0])}) to `, param[1])
       return `<parameter><name>${param[0]}</name>${param[1].length > 0 ? param[1].map(str => `<value>${str}</value>`).join('') : '<value />'}</parameter>`
     }).join('')
   }
-  async request(setDefaults: boolean = true) {
+  async requestTable(setDefaults: boolean = true, clientSide: boolean = false): Promise<Clean_Wonder_Table> {
+    return WonderRequest.toTable(await this.request(setDefaults, clientSide));
+  }
+  async request(setDefaults: boolean = true, clientSide: boolean = false): Promise<RawWonder_Page> {
     if (!this.params.has('B_1')) {
       throw new Error(`Please group by at least one property`)
     }
-if(setDefaults){
-  this.setDefaults();
-}
+    if (setDefaults) {
+      this.setDefaults();
+    }
     let reqPartOfBody = this.toString()
-    console.log(`Requesting`, reqPartOfBody)
-    console.log(`Query: ${reqPartOfBody}`)
+    // console.log(`Requesting`, reqPartOfBody)
+    // console.log(`Query: ${reqPartOfBody}`)
     let fetchBody = `request_xml=<request-parameters><parameter>
         <name>accept_datause_restrictions</name>
         <value>true</value>
         </parameter>${reqPartOfBody}</request-parameters>`
 
-    let result = await fetch(`https://wonder.cdc.gov/controller/datarequest/D76`, {
+    let result = await fetch(clientSide ? `http://${location.hostname}:5001/gdsn3-22/us-central1/WonderProxy` : `https://wonder.cdc.gov/controller/datarequest/D76`, {
       method: 'POST',
       body: fetchBody,
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/xml' },
@@ -383,13 +472,200 @@ if(setDefaults){
     })
     console.log(result.status + " " + result.statusText)
     let textResult = await result.text()
-    console.log(textResult);
+    // console.log(textResult);
     // let jsonValue = await XMLParser.parseStringPromise(textResult, {})
     // console.log('JSON__________----')
     // console.log(jsonValue)
-    return textResult
+    let json: any = await XmlToJson(textResult)
+
+    return json.page[0]
+  }
+
+  static toTable(data: RawWonder_Page): Clean_Wonder_Table {
+
+    // console.log(data.response[0]['data-table'][0])
+    let byCodes = flatten(data.response[0].request[0].byvariables.map((v) => v.variable.map((vv) => vv.$.code)))
+    console.log('By codes', byCodes)
+    let measureCodes = data.response[0]['measure-selections'][0].measure.map((m) => m.$.code)
+
+    let columnCodes = concactinate(byCodes, measureCodes)
+
+
+    console.log('Column Codes', measureCodes.map((c) => DeWonder(c)))
+    let repeatedColumns: Array<[count: number, value: (string | number), index: number]> = []
+    let columnsToRepeat: Map<number, string | number> = new Map()
+    let rows = []
+    data.response[0]['data-table'][0].r.forEach((row: RawWonder_TableRow) => {
+      let column = []
+      columnsToRepeat.clear()
+      for (let i = 0; i < repeatedColumns.length; i++) {
+
+        // console.log(`Repeating ${repeatedColumns[i][1]}`)
+        columnsToRepeat.set(repeatedColumns[i][2], repeatedColumns[i][1])
+        repeatedColumns[i][0]--
+        if (repeatedColumns[i][0] <= 0) {
+          repeatedColumns.splice(i, 1)
+        }
+      }
+      row.c.forEach((col: RawWonder_TableColumn, colIndex) => {
+        if (columnsToRepeat.has(colIndex)) {
+          column.push(columnsToRepeat.get(colIndex))
+        }
+        let val = (typeof col.$.l == 'undefined') ?
+          (col.$.v == "Unreliable" ? "Unreliable" : Number(col.$.v?.replaceAll(',', '')))
+          : col.$.l
+        if (col.$.r) {
+          // console.log(`Repeating ${val} ${Number(col.$.r) - 1} times`)
+          repeatedColumns.push([Number(col.$.r) - 1, val, colIndex])
+        }
+        column.push(val)
+
+      })
+      rows.push(column)
+    })
+    let output = { columnCodes: columnCodes, columnNames: columnCodes.map((code) => DeWonder(code)), rows: rows }
+    console.log(output)
+    return output;
   }
 }
 
+export interface ConsumableLinkedList_Node<T> {
+  value: T
+  next: ConsumableLinkedList_Node<T> | null
+}
+export class ConsumableLinkedList<T> {
+  root: ConsumableLinkedList_Node<T> = null
+  constructor(values: T[] | IterableIterator<T>) {
+    if (!Array.isArray(values)) {
+      let vals: T[] = []
+      let node = null;
+      for (let item of values) {
+        if (node == null) {
+          this.root = { value: item, next: null }
+          node = this.root
+        } else {
+          node.next = { value: item, next: null }
+          node = node.next
+        }
+      }
+
+
+    } else {
+      this.root = { value: values[0], next: null }
+      let node = this.root;
+      for (let i = 1; i < values.length; i++) {
+        node.next = { value: values[i], next: null }
+        node = node.next
+      }
+    }
+  }
+  consume(onEach: (value: T) => boolean) {
+    let node = this.root;
+    let lastNode = null;
+    while (node != null) {
+      if (onEach(node.value)) {
+        if (lastNode == null) {
+        //  console.log(`Consuming ${node.value} as root now ${this.toString()}`)
+          this.root = node.next
+          node = this.root;
+        } else {
+        //  console.log(`Consuming ${node.value} in chain now ${this.toString()}`)
+          lastNode.next = node.next
+          node = node.next;
+        }
+      } else {
+        lastNode = node
+        node = node.next;
+      }
+
+    }
+    return this;
+  }
+  toArray() {
+    let node = this.root;
+    let out = []
+    while (node != null) {
+      out.push(node.value)
+      node = node.next;
+    }
+    return out;
+  }
+  toString() {
+    return this.toArray().join(', ')
+  }
+}
 
 export const ExampleRequest = '<request-parameters><parameter><name>B_1</name><value>D76.V1-level1</value></parameter><parameter><name>B_2</name><value>D76.V8</value></parameter><parameter><name>B_3</name><value>*None*</value></parameter><parameter><name>B_4</name><value>*None*</value></parameter><parameter><name>B_5</name><value>*None*</value></parameter><parameter><name>F_D76.V1</name><value>1999</value><value>2000</value><value>2001</value><value>2002</value><value>2003</value><value>2004</value><value>2005</value><value>2006</value><value>2007</value><value>2008</value><value>2009</value><value>2010</value><value>2011</value><value>2012</value><value>2013</value></parameter><parameter><name>F_D76.V10</name><value>*All*</value></parameter><parameter><name>F_D76.V2</name><value>C00-D48</value></parameter><parameter><name>F_D76.V25</name><value>*All*</value></parameter><parameter><name>F_D76.V27</name><value>*All*</value></parameter><parameter><name>F_D76.V9</name><value>*All*</value></parameter><parameter><name>I_D76.V1</name><value>1999 (1999) 2000 (2000) 2001 (2001) 2002 (2002) 2003 (2003) 2004 (2004) 2005 (2005) 2006 (2006) 2007 (2007) 2008 (2008) 2009 (2009) 2010 (2010) 2011 (2011) 2012 (2012) 2013 (2013) </value></parameter><parameter><name>I_D76.V10</name><value>*All* (The United States) </value></parameter><parameter><name>I_D76.V2</name><value>C00-D48 (Neoplasms) </value></parameter><parameter><name>I_D76.V25</name><value>All Causes of Death </value></parameter><parameter><name>I_D76.V27</name><value>*All* (The United States) </value></parameter><parameter><name>I_D76.V9</name><value>*All* (The United States) </value></parameter><parameter><name>M_1</name><value>D76.M1</value></parameter><parameter><name>M_2</name><value>D76.M2</value></parameter><parameter><name>M_3</name><value>D76.M3</value></parameter><parameter><name>M_9</name><value>D76.M9</value></parameter><parameter><name>O_V10_fmode</name><value>freg</value></parameter><parameter><name>O_V1_fmode</name><value>freg</value></parameter><parameter><name>O_V25_fmode</name><value>freg</value></parameter><parameter><name>O_V27_fmode</name><value>freg</value></parameter><parameter><name>O_V2_fmode</name><value>freg</value></parameter><parameter><name>O_V9_fmode</name><value>freg</value></parameter><parameter><name>O_aar</name><value>aar_std</value></parameter><parameter><name>O_aar_CI</name><value>true</value></parameter><parameter><name>O_aar_SE</name><value>true</value></parameter><parameter><name>O_aar_enable</name><value>true</value></parameter><parameter><name>O_aar_pop</name><value>0000</value></parameter><parameter><name>O_age</name><value>D76.V5</value></parameter><parameter><name>O_javascript</name><value>on</value></parameter><parameter><name>O_location</name><value>D76.V9</value></parameter><parameter><name>O_oc-sect1-request</name><value>close</value></parameter><parameter><name>O_precision</name><value>1</value></parameter><parameter><name>O_rate_per</name><value>100000</value></parameter><parameter><name>O_show_suppressed</name><value>true</value></parameter><parameter><name>O_show_totals</name><value>true</value></parameter><parameter><name>O_show_zeros</name><value>true</value></parameter><parameter><name>O_timeout</name><value>600</value></parameter><parameter><name>O_title</name><value>Example1</value></parameter><parameter><name>O_ucd</name><value>D76.V2</value></parameter><parameter><name>O_urban</name><value>D76.V19</value></parameter><parameter><name>VM_D76.M6_D76.V10</name><value/></parameter><parameter><name>VM_D76.M6_D76.V17</name><value>*All*</value></parameter><parameter><name>VM_D76.M6_D76.V1_S</name><value>*All*</value></parameter><parameter><name>VM_D76.M6_D76.V7</name><value>*All*</value></parameter><parameter><name>VM_D76.M6_D76.V8</name><value>*All*</value></parameter><parameter><name>V_D76.V1</name><value/></parameter><parameter><name>V_D76.V10</name><value/></parameter><parameter><name>V_D76.V11</name><value>*All*</value></parameter><parameter><name>V_D76.V12</name><value>*All*</value></parameter><parameter><name>V_D76.V17</name><value>*All*</value></parameter><parameter><name>V_D76.V19</name><value>*All*</value></parameter><parameter><name>V_D76.V2</name><value/></parameter><parameter><name>V_D76.V20</name><value>*All*</value></parameter><parameter><name>V_D76.V21</name><value>*All*</value></parameter><parameter><name>V_D76.V22</name><value>*All*</value></parameter><parameter><name>V_D76.V23</name><value>*All*</value></parameter><parameter><name>V_D76.V24</name><value>*All*</value></parameter><parameter><name>V_D76.V25</name><value/></parameter><parameter><name>V_D76.V27</name><value/></parameter><parameter><name>V_D76.V4</name><value>*All*</value></parameter><parameter><name>V_D76.V5</name><value>*All*</value></parameter><parameter><name>V_D76.V51</name><value>*All*</value></parameter><parameter><name>V_D76.V52</name><value>*All*</value></parameter><parameter><name>V_D76.V6</name><value>00</value></parameter><parameter><name>V_D76.V7</name><value>*All*</value></parameter><parameter><name>V_D76.V8</name><value>*All*</value></parameter><parameter><name>V_D76.V9</name><value/></parameter><parameter><name>action-Send</name><value>Send</value></parameter><parameter><name>dataset_code</name><value>D76</value></parameter><parameter><name>dataset_label</name><value>Underlying Cause of Death, 1999-2016</value></parameter><parameter><name>dataset_vintage</name><value>2016</value></parameter><parameter><name>finder-stage-D76.V1</name><value>codeset</value></parameter><parameter><name>finder-stage-D76.V10</name><value>codeset</value></parameter><parameter><name>finder-stage-D76.V2</name><value>codeset</value></parameter><parameter><name>finder-stage-D76.V25</name><value>codeset</value></parameter><parameter><name>finder-stage-D76.V27</name><value>codeset</value></parameter><parameter><name>finder-stage-D76.V9</name><value>codeset</value></parameter><parameter><name>saved_id</name><value/></parameter><parameter><name>stage</name><value>request</value></parameter></request-parameters>'
+
+export interface Clean_Wonder_Table {
+  columnNames: string[]
+  columnCodes: string[]
+  rows: Array<(string | number)>[]
+}
+export interface RawWonder_Response {
+  caveats: any[]
+  'data-table': Array<RawWonder_DataTable>
+  request: Array<RawWonder_Request>
+  'measure-selections': RawWonder_MeasureSelections[]
+}
+export interface RawWonder_Request {
+  'measure-selections': RawWonder_MeasureSelections[]
+  byvariables: Array<{ variable: Array<{ $: { code: string } }> }>
+}
+export interface RawWonder_MeasureSelections {
+  measure: RawWonder_Measure[]
+}
+export interface RawWonder_Measure {
+  $: { code: WonderQueryParam }
+}
+
+export interface RawWonder_Page {
+  'agreement-signed': string
+  dataset: any
+  defaultMap: string[]
+  platorm: string[]
+  response: RawWonder_Response[]
+}
+export interface RawWonder_DataTable {
+  '$': { 'show-all-labels': string }
+  r: Array<RawWonder_TableRow>
+}
+export interface RawWonder_TableRow {
+  c: Array<RawWonder_TableColumn>
+}
+export interface RawWonder_TableColumn {
+  '$': {
+    l?: string
+    v?: string
+    r?: string
+  }
+}
+function test() {
+  let val: RawWonder_Response
+  val
+
+}
+
+export class Database {
+  deathsByCause: Map<string, BTree<number, number>> = new Map()
+  constructor() {
+
+  }
+  getDeathsForCause(causeName: string) {
+    if (!this.deathsByCause.has(causeName)) {
+      this.deathsByCause.set(causeName, new BTree(undefined))
+    }
+    return this.deathsByCause.get(causeName)
+  }
+  async pullDeathsByCause() {
+    let ths = this;
+    let deaths = await new WonderRequest().groupBy('Month').groupBy('CauseOfdeath').filterByYear(['1999', '2001']).requestTable(true, true)
+    deaths.rows.forEach((row: [year: string, cause: string, deaths: number, population: number, crudeRate: number | string, ageAdjustedRate: number | string, ageAdjustedError: number | string]) => {
+      let time = new Date(row[0].isNumber() ? `${row[0]} 1 1` : row[0]).getTime()
+      let tree = ths.getDeathsForCause(row[1])
+      tree.set(time, row[2])
+    })
+    return this.deathsByCause
+  }
+
+}

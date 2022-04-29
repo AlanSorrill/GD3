@@ -111,7 +111,7 @@ export function CombineCopyObjects<A, B>(a: A, b: B): A & B {
 }
 
 declare global {
-
+    var searchParamObj: any
     interface String {
         replaceAll(a: string, b: string): string;
         capitolizeFirstLetter(): Capitalize<string>;
@@ -120,6 +120,7 @@ declare global {
         mapWhile<B>(predicate: (value: T) => boolean, transform: (value: T) => B): B[]
         forMap<B>(transform: (value: T, index: number) => B, startValue: OptFunc<number>, predicate: (index: number, arr: this) => boolean, update: OptFunc<number>): B[]
         insertBetweenEach<T>(item: T | ((afterIndex: number, left: T, right: T) => T)): T[]
+        mapOrConsumeInPlace(shouldKeep: (value: T, index: number) => (T | false)): T[]
     }
     interface Number {
         clamp(low: number, high: number): number
@@ -141,6 +142,18 @@ declare global {
 //         return defaultValue;
 //     }
 // }
+Array.prototype.mapOrConsumeInPlace = function <T>(shouldKeep: (value: T, index: number) => (T | false)): T[] {
+    let ths = this as Array<T>
+    for (let i = 0; i < ths.length; i++) {
+        let fresh = shouldKeep(this[i], i)
+        if(fresh == false){
+            ths.splice(i,1);
+        } else {
+            this[i] = fresh
+        }
+    }
+    return this;
+}
 if (typeof Number.prototype.isEven == 'undefined') {
     Number.prototype.isEven = function () {
         return this % 2 == 0;
