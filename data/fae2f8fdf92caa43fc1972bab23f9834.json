@@ -1,6 +1,0 @@
-<?xml version="1.0"?>
-<page>
-<platform>prod</platform>
-<title>Processing Error</title>
-<message>Age Adjusted Rates cannot be produced when the data is grouped by Age. #Age-Adjusted Rates Hints#</message>
-</page>

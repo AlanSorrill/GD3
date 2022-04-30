@@ -183,12 +183,12 @@ export class WonderRequest {
       'O_age': [WonderQueryParam_AgeGroup.TenYear],
       'O_location': [WonderQueryParam_Include.StatesAndCounties],
       'O_aar_pop': ['0000'],
-      'O_aar_enable': ['true'],
+      // 'O_aar_enable': ['false'],
       'O_urban': [WonderQueryParam_GroupBy.Urbanization2013],
-      'O_aar_CI': ['true'],
+      // 'O_aar_CI': ['true'],
       'action-Send': ['Send'],
-      'O_aar_SE': ['true'],
-      'O_aar': ['aar_std'],
+      // 'O_aar_SE': ['true'],
+      'O_aar': ['aar_none'],
       'M_1': [WonderQueryParam_Measure.Deaths],
       'M_2': [WonderQueryParam_Measure.Population],
       'M_3': [WonderQueryParam_Measure.CrudeRate],
@@ -239,10 +239,10 @@ export class WonderRequest {
 
 
       //values for non-standard age-adjusted rates
-      'VM_D76.M6_D76.V1_S': ['2004'],// [WonderQueryParam_Util.All],//years
-      'VM_D76.M6_D76.V17': [WonderQueryParam_Util.All],//Hispanic Origin
-      'VM_D76.M6_D76.V7': [WonderQueryParam_Util.All],//Gender
-      'VM_D76.M6_D76.V8': [WonderQueryParam_Util.All],//Race
+      // 'VM_D76.M6_D76.V1_S': ['2004'],// [WonderQueryParam_Util.All],//years
+      // 'VM_D76.M6_D76.V17': [WonderQueryParam_Util.All],//Hispanic Origin
+      // 'VM_D76.M6_D76.V7': [WonderQueryParam_Util.All],//Gender
+      // 'VM_D76.M6_D76.V8': [WonderQueryParam_Util.All],//Race
 
 
 
