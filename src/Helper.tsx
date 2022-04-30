@@ -144,6 +144,7 @@ declare global {
 // }
 Array.prototype.mapOrConsumeInPlace = function <T>(shouldKeep: (value: T, index: number) => (T | false)): T[] {
     let ths = this as Array<T>
+    let out: T[] = []
     for (let i = 0; i < ths.length; i++) {
         let fresh = shouldKeep(this[i], i)
         if(fresh == false){
