@@ -2,6 +2,8 @@ import React from "react";
 import { CaronaCasesAndDeathsOverTimeRow, SodaDB, SodaDBDirectory } from "./SodaDB";
 import "./RonaDB"
 import { RedPillIndex } from "./RedPill/RedPillIndex";
+import { BristolBoard, fColor, lerp, UIElement, UIFrameResult, UIFrame_CornerWidthHeight } from "bristolboard";
+import { LineGraph } from "./LineGraph";
 export interface CaronaRoot_Props { }
 export interface CaronaRoot_State {
     values: Array<CaronaCasesAndDeathsOverTimeRow>
@@ -14,18 +16,20 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
     }
 
     componentDidMount(): void {
-        if(searchParamObj['redpill'] == 'true'){
-            this.setState({redPill: true})
+        if (searchParamObj['redpill'] == 'true') {
+            this.setState({ redPill: true })
         }
+        let ths = this;
+        database.pullPopulation().then(()=>{ths.setState({})});
     }
     render() {
         let ths = this;
-        if(this.state.redPill){
+        if (this.state.redPill) {
             return <RedPillIndex />
         }
         return <div style={{
-            backgroundColor: fColor.white.toHexStr(),
-            color: fColor.red.lighten1.toHexStr(),
+            backgroundColor: fColor.white.toHexString(),
+            color: fColor.red.lighten1.toHexString(),
             fontFamily: 'Ubuntu',
             width: '100vw', height: '100vh',
             position: 'fixed',
@@ -35,7 +39,7 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
             <div style={{ fontWeight: 'bold', fontSize: 64, margin: 16 }}>SARS CoV-#
                 <div style={{
                     cursor: 'pointer', borderRadius: 4, overflow: 'hidden', display: 'inline', padding: 8,
-                    backgroundColor: fColor.red.base.toHexStr(), color: fColor.white.toHexStr(), fontSize: 32
+                    backgroundColor: fColor.red.base.toHexString(), color: fColor.white.toHexString(), fontSize: 32
 
                 }} onClick={async () => {
                     //9hhd-mqs2 CDC Wonder
@@ -52,7 +56,7 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
                 }}>Test</div>
                 <div style={{
                     cursor: 'pointer', borderRadius: 4, overflow: 'hidden', display: 'inline', padding: 8,
-                    backgroundColor: fColor.red.base.toHexStr(), color: fColor.white.toHexStr(), fontSize: 32
+                    backgroundColor: fColor.red.base.toHexString(), color: fColor.white.toHexString(), fontSize: 32
 
                 }} onClick={async () => {
                     //9hhd-mqs2 CDC Wonder
@@ -65,8 +69,13 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
                     //         (err) => console.log(err))
                 }}>RedPill</div>
             </div>
+            {/* <div style={{backgroundColor: 'purple', width: 500, height: 500}}></div> */}
+            <LineGraph  style={{ background: 'transparent', width: '1600px', height: '500px' }} sources={[
+                database.populationByAge.get('15-24 years'),
+                database.populationByAge.get('25-34 years')
+            ]} padding={32} />
 
-            {/* <div style={{ flexGrow: 1, width: '100vw', backgroundColor: fColor.purple.base.toHexStr(), overflowY: 'scroll' }}>
+            {/* <div style={{ flexGrow: 1, width: '100vw', backgroundColor: fColor.purple.base.toHexString(), overflowY: 'scroll' }}>
                 {<TempRowLabels row={this.state.values.length > 0 ? Object.keys(this.state.values[0]) : []} />}
                 {this.state.values.map((value: CaronaCasesAndDeathsOverTimeRow, index: number) => (
                     <TempRow row={value} />))}
@@ -81,9 +90,9 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
 //             width: `${1.0/props.row.length * 100}%`,
 //             height: 16,
 //             display: 'inline',float: 'left',
-//             backgroundColor: index.isEven() ? fColor.red.base.toHexStr() : fColor.white.toHexStr(),
-//             color: index.isEven() ? fColor.white.toHexStr() : fColor.lightText[0].toHexStr(),
-//             overflowX: 'hidden', 
+//             backgroundColor: index.isEven() ? fColor.red.base.toHexString() : fColor.white.toHexString(),
+//             color: index.isEven() ? fColor.white.toHexString() : fColor.lightText[0].toHexString(),
+//             overflowX: 'hidden',
 //             overflowY: 'hidden'
 //         }}>{value}</div>)}
 //     </div>
@@ -94,9 +103,9 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
 //             width: `${1.0/props.row.length * 100}%`,
 //             height: 16,
 //             display: 'inline',float: 'left',
-//             backgroundColor: index.isEven() ? fColor.red.base.toHexStr() : fColor.white.toHexStr(),
-//             color: index.isEven() ? fColor.white.toHexStr() : fColor.lightText[0].toHexStr(),
-//             overflowX: 'hidden', 
+//             backgroundColor: index.isEven() ? fColor.red.base.toHexString() : fColor.white.toHexString(),
+//             color: index.isEven() ? fColor.white.toHexString() : fColor.lightText[0].toHexString(),
+//             overflowX: 'hidden',
 //             overflowY: 'hidden'
 //         }}>{value}</div>)}
 //     </div>

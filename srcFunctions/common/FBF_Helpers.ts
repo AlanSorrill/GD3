@@ -1,3 +1,5 @@
+import { Key } from "react";
+
 const Xml2JS = require('xml2js').parseString;
 declare global {
 
@@ -7,11 +9,49 @@ declare global {
         isBoolean(): boolean
     }
     interface Array<T> {
+        mapOrDrop<N>(shouldKeep: (value: T, index: number) => (N | 'DROP')): N[]
         pushAll(stuff: T | T[]): void
     }
     interface Map<K, V> {
+        keysAsArray(): K[]
         toArray(): Array<[K, V]>
+        getWithDefault(key: K, defaultValue: (key: K) => V): V
     }
+    interface BTree<K, V> {
+
+    }
+    
+}
+Map.prototype.keysAsArray = function <K,V>() {
+    let ths = this as Map<K,V>
+    let out: K[] = []
+    for(let key of ths.keys()){
+        out.push(key)
+    }
+    return out;
+}
+Array.prototype.mapOrDrop = function <T, N>(shouldKeep: (value: T, index: number) => (N | 'DROP')): N[] {
+    let ths = this as Array<T>
+    let out: N[] = []
+    for (let i = 0; i < ths.length; i++) {
+        let fresh = shouldKeep(this[i], i)
+        if (fresh == 'DROP') {
+            // console.log(`Dropping ${i}`,this[i])
+        } else {
+            out.push(fresh)
+        }
+    }
+    return out;
+}
+Map.prototype.getWithDefault = function <K, V>(key: K, defaultValue: (key: K) => V) {
+    let ths = this as Map<K, V>
+
+    if (!ths.has(key)) {
+        ths.set(key, defaultValue(key))
+    }
+    return ths.get(key)
+
+
 }
 Array.prototype.pushAll = function <T>(stuff: T | T[]) {
     if (Array.isArray(stuff)) {
@@ -42,61 +82,7 @@ if (typeof Map.prototype.toArray == 'undefined') {
 export function ensureFBF_Helpers() {
     console.log()
 }
-export interface XmlElement {
-    tag: string
-    parameters: { [key: string]: number | string }
-    children?: XmlElement[]
-}
-function cleanXmlToJson(obj: Object, name: string = null, asElement: boolean = true): XmlElement | XmlElement[] {
-    if (typeof obj != 'object') {
-        return obj;
-    }
 
-    if (asElement) {//(obj['$'] || (typeof obj['_'] == 'string')) {// is element
-        console.log('Cleaning element ', obj)
-        let out: XmlElement = {
-            tag: name,
-            parameters: {},
-        }
-
-        for (let childName of Object.keys(obj)) {
-            switch (childName) {
-                case '_':
-                    if (!out.children) {
-                        out.children = []
-                    }
-                    out.children.push(obj['_'])
-                    break;
-                case '$':
-                    for (let paramName of Object.keys(obj['$'])) {
-                        out.parameters[paramName] = obj['$'][paramName]
-                    }
-                    break;
-                default:
-                    if (!out.children) {
-                        out.children = []
-                    }
-                    if (Array.isArray(obj[childName])) {
-                        for (let child of obj[childName]) {
-                            out.children.pushAll(cleanXmlToJson(child, childName))
-                        }
-                    } else {
-                        out.children.pushAll(cleanXmlToJson(obj[childName], childName))
-                    }
-                    break;
-            }
-            // out.parameters[childName] = obj['$'][childName]
-        }
-        return out;
-    } else {
-        let outlist = []
-        for (let key of Object.keys(obj)) {
-            outlist.push(cleanXmlToJson(obj[key], key))
-        }
-        return outlist;
-    }
-
-}
 export function flatten<T>(arr: T[][]): T[] {
     let out: T[] = []
     for (let i = 0; i < arr.length; i++) {
@@ -106,12 +92,12 @@ export function flatten<T>(arr: T[][]): T[] {
     }
     return out;
 }
-export function concactinate<T>(a: T[], b: T[]){
+export function concactinate<T>(a: T[], b: T[]) {
     let out: T[] = []
-    a.forEach((aa)=>{
+    a.forEach((aa) => {
         out.push(aa)
     })
-    b.forEach((bb)=>{
+    b.forEach((bb) => {
         out.push(bb)
     })
     return out;

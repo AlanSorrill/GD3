@@ -1,6 +1,7 @@
+import { FColor, fColor } from "bristolboard";
 import React from "react";
 import { lerpTuple } from "../../Helper";
-import { Device, FColor, interpMap, lerp, Project2Root, Section } from "../Imports_Project2";
+import { Device, interpMap, lerp, Project2Root, Section } from "../Imports_Project2";
 
 
 export class Section_Prehistoric extends Section {

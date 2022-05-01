@@ -50,7 +50,7 @@ export const RonaTest = functions.https.onRequest(async (req, res) => {
 
 
   let exportPath = path.resolve(__dirname, '../data/exampleResponse.json');
-  console.log(`saving to file${exportPath}`)
+  console.log(`saving to file${exportPath}`) 
   fs.writeFileSync(exportPath, JSON.stringify(data))
   console.log('saved')
   res.setHeader('Content-Type', 'application/json')

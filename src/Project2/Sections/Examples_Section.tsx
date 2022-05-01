@@ -1,3 +1,4 @@
+import { fColor } from "bristolboard";
 import React, { RefObject } from "react";
 import { Device } from "../../Helper";
 import { htmlLinesAndTabs } from "../../Imports";

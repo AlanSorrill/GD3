@@ -3,6 +3,7 @@
 if (true) {
   global.fetch = require('node-fetch')
 }
+import { FColor } from 'bristolboard';
 import BTree from 'sorted-btree';
 import { concactinate, flatten, isAllTrue as isAnyTrue, replaceAllInString, XmlToJson } from './FBF_Helpers';
 
@@ -211,7 +212,7 @@ export class WonderRequest {
 
       'F_D76.V1': [WonderQueryParam_Util.All],//Include all dates
       'F_D76.V10': [WonderQueryParam_Util.All],//Include all Census Regions
-      'F_D76.V2': ['C00-D48'],//Include all ICD-10 Codes --TESTING ONLY CANCER
+      'F_D76.V2': [WonderQueryParam_Util.All],//Include all ICD-10 Codes --TESTING ONLY CANCER
       'F_D76.V9': [WonderQueryParam_Util.All],//Include all States and Counties
 
       'V_D76.V7': [WonderQueryParam_Util.All],//Gender
@@ -325,8 +326,8 @@ export class WonderRequest {
   }
   filterByYear(years: WonderQueryParam_Util.All | YearString[]) {
     //let val = (typeof years == 'string') ? years : years.map(y => `${y} (${y})`).join(' ')
-   // return this.addParam('I_D76.V1', val);
-   return this.addParam(`F_D76.V1`,years)
+    // return this.addParam('I_D76.V1', val);
+    return this.addParam(`F_D76.V1`, years)
 
   }
   groupBy(groupByName: (keyof typeof WonderQueryParam_GroupBy) | 'None') {
@@ -482,8 +483,17 @@ export class WonderRequest {
   }
 
   static toTable(data: RawWonder_Page): Clean_Wonder_Table {
+    try {
+      console.log(data.response[0]['data-table'][0])
+    } catch (err) {
+      try {
+        console.log(data.message?.join('\n'))
 
-    // console.log(data.response[0]['data-table'][0])
+      } catch (errr) {
+        console.log(`Bad response`, data);
+      }
+      return null;
+    }
     let byCodes = flatten(data.response[0].request[0].byvariables.map((v) => v.variable.map((vv) => vv.$.code)))
     console.log('By codes', byCodes)
     let measureCodes = data.response[0]['measure-selections'][0].measure.map((m) => m.$.code)
@@ -565,11 +575,11 @@ export class ConsumableLinkedList<T> {
     while (node != null) {
       if (onEach(node.value)) {
         if (lastNode == null) {
-        //  console.log(`Consuming ${node.value} as root now ${this.toString()}`)
+          //  console.log(`Consuming ${node.value} as root now ${this.toString()}`)
           this.root = node.next
           node = this.root;
         } else {
-        //  console.log(`Consuming ${node.value} in chain now ${this.toString()}`)
+          //  console.log(`Consuming ${node.value} in chain now ${this.toString()}`)
           lastNode.next = node.next
           node = node.next;
         }
@@ -621,6 +631,7 @@ export interface RawWonder_Measure {
 
 export interface RawWonder_Page {
   'agreement-signed': string
+  message?: string[]
   dataset: any
   defaultMap: string[]
   platorm: string[]
@@ -645,27 +656,121 @@ function test() {
   val
 
 }
-
+export type RawRonaColumns = [DataAsOf: number, StartDate: number, EndDate: number, Group: string, Year: number, Month: number, State: string, Sex: string, AgeGroup: string,
+  COVID19Deaths: number,//9
+  TotalDeaths: number,//10
+  PneumoniaDeaths: number,//11
+  PneumoniaAndCOVID19Deaths: number,//12
+  InfluenzaDeaths: number,//13
+  PneumoniaInfluenzaOrCOVID19Deaths: number,//14
+  Footnote: string]
+const RawRonaColumnsDefault: RawRonaColumns = [0, 0, 0, '', 0, 0, '', '', '', 0, 0, 0, 0, 0, 0, '']
+export type AgeGroup = '< 1 year' | '1-4 years' | '5-14 years' | '15-24 years' | '25-34 years' | '35-44 years' | '45-54 years' | '55-64 years' | '65-74 years' | '75-84 years' | '85+ years' | 'Not Stated'
 export class Database {
-  deathsByCause: Map<string, BTree<number, number>> = new Map()
+  deathsByCause: Map<string, DataChannel> = new Map()
+  populationByAge: Map<AgeGroup, DataChannel> = new Map()
   constructor() {
 
   }
+  getPopulationForAge(ageGroup: AgeGroup) {
+    return this.populationByAge.getWithDefault(ageGroup, () => new DataChannel(`AgeGroup${ageGroup}`))
+  }
   getDeathsForCause(causeName: string) {
     if (!this.deathsByCause.has(causeName)) {
-      this.deathsByCause.set(causeName, new BTree(undefined))
+      this.deathsByCause.set(causeName, new DataChannel(`DeathsForCause${causeName}`))
     }
     return this.deathsByCause.get(causeName)
   }
+  async pullCdcData() {
+    let result = await fetch('https://data.cdc.gov/api/views/9bhg-hcku/rows.csv')
+    let text = await result.text()
+    let lines = text.split('\n')
+    let columnNames = lines[0]
+    lines.splice(0, 1)
+    let values: Array<RawRonaColumns> = lines.mapOrDrop((line, index) => {
+      let raw = line.split(',')
+      if (raw[3] != 'By Month' || raw[7] != 'All Sexes') {
+        return 'DROP'
+      }
+      let out: RawRonaColumns = [] as any
+      for (let i = 0; i < raw.length; i++) {
+        switch (i) {
+          case 0:
+          case 1:
+          case 2:
+            out.push(new Date(raw[i]).getTime())
+            break;
+          case 4:
+          case 5:
+          case 9:
+          case 10:
+          case 11:
+          case 12:
+          case 13:
+          case 14:
+          case 14:
+            out.push(Number(raw[i]))
+            break;
+          case 8:
+            out.push(raw[i].replace('Under 1 year', '< 1 year').replace('85 years and over', '85+ years'))
+            break;
+          default:
+            out.push(raw[i])
+            break;
+        }
+      }
+      while (out.length < RawRonaColumnsDefault.length) {
+        out.push(RawRonaColumnsDefault[out.length - 1])
+      }
+      return out;
+      // return [raw[0], raw[1], raw[2], raw[3], raw[4], raw[5], raw[6], raw[7], raw[8], raw[9], raw[10], raw[11], raw[6], raw[6], raw[6], raw[6]] as RawColumns
+    })
+    let output = { columns: columnNames, rows: values }
+    console.log(output)
+    window['lastCdc'] = output
+
+  }
+  async pullPopulation() {
+    let ths = this;
+    let population = await new WonderRequest().groupBy('Year').groupBy('AgeGroups').requestTable(true, true)
+    population.rows.forEach((row: [year: string, ageGroup: string, deaths: number, population: number, crudeRate: number | string]) => {
+      let time = new Date(row[0].isNumber() ? `${row[0]} 1 1` : row[0]).getTime()
+      let tree = ths.getPopulationForAge(row[1] as AgeGroup)
+
+      tree.set(time, row[3])
+    })
+    return this.populationByAge
+  }
   async pullDeathsByCause() {
     let ths = this;
-    let deaths = await new WonderRequest().groupBy('Month').groupBy('CauseOfdeath').filterByYear(['1999', '2001']).requestTable(true, true)
-    deaths.rows.forEach((row: [year: string, cause: string, deaths: number, population: number, crudeRate: number | string, ageAdjustedRate: number | string, ageAdjustedError: number | string]) => {
+    let deaths = await new WonderRequest().groupBy('CauseOfdeath').groupBy('AgeGroups').filterByYear(['2019', '2020']).requestTable(true, true)
+    deaths.rows.forEach((row: [causeOfDeath: string, tenYear: string, deaths: number, population: number, crudeRate: number | string]) => {
       let time = new Date(row[0].isNumber() ? `${row[0]} 1 1` : row[0]).getTime()
-      let tree = ths.getDeathsForCause(row[1])
+      let tree = ths.getDeathsForCause(row[0])
       tree.set(time, row[2])
     })
     return this.deathsByCause
   }
 
+}
+
+export class DataChannel {
+  title: string
+  color: FColor
+  tree: BTree<number, number> = new BTree()
+  minValue: number = null
+  maxValue: number = null
+  constructor(title: string, color: FColor = fColor.randomColor()) {
+    this.title = title;
+    this.color = color;
+  }
+  set(time: number, value: number){
+    if(this.minValue == null || value < this.minValue){
+      this.minValue = value;
+    }
+    if(this.maxValue == null || value > this.maxValue){
+      this.maxValue = value;
+    }
+    this.tree.set(time, value)
+  }
 }

@@ -1,3 +1,4 @@
+import { fColor } from "bristolboard";
 import React from "react";
 import { Device } from "../../Helper";
 

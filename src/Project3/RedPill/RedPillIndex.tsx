@@ -1,3 +1,4 @@
+import { fColor } from "bristolboard";
 import React from "react";
 import { Device } from "../../Helper";
 import { RP_Timeline_Item } from "./RP_Timeline";
@@ -12,7 +13,7 @@ export class RedPillIndex extends React.Component<RedPillIndex_Props, RedPillInd
 
     render() {
         let sidePadding = Device.switch({ desktopHorizontal: '10vw', desktopVertical: '5vw', phoneHorizontal: '0vw' })
-        return <div style={{ backgroundColor: fColor.darkMode[0].toHexStr(), height: '100vh', overflowY: 'scroll', paddingLeft: sidePadding, paddingRight: sidePadding }}>
+        return <div style={{ backgroundColor: fColor.darkMode[0].toHexString(), height: '100vh', overflowY: 'scroll', paddingLeft: sidePadding, paddingRight: sidePadding }}>
             <div style={{ height: 200 }} />
             <RP_Timeline_Item title="Eco Health Aliance applies for DARPA grant concerning gain of function research" date="March 27, 2018" source="The Intercept">
                 <img src="./project3/darpaProposal.png" style={{ width: '100%', height: 'auto' }}></img>

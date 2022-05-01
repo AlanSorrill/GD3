@@ -1,7 +1,8 @@
+import { ensureBristolImports, fColor } from 'bristolboard'
 import React from 'react'
 
 import { Device, ImportGoogleFont } from '../Helper'
-import { ensureFColor } from '../Imports'
+
 
 interface Project1Root_State {
     width: number
@@ -10,7 +11,7 @@ interface Project1Root_State {
 export class Project1Root extends React.Component<any, Project1Root_State> {
     constructor(props) {
         super(props)
-        ensureFColor()
+        ensureBristolImports()
         this.state = {
             width: window.innerWidth,
             height: window.innerHeight

@@ -6,7 +6,7 @@ var nodeExternals = require('webpack-node-externals');
 const webConfig: Configuration = {
 
     mode: 'development',
-    devtool: 'source-map',
+    devtool: 'eval-source-map',
     entry: {
         
         'lib': {

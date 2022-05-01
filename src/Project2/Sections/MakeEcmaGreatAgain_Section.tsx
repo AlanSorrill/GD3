@@ -1,3 +1,4 @@
+import { fColor } from "bristolboard";
 import React, { RefObject } from "react";
 import { Device, ExplainCard, htmlLinesAndTabs, Project2Root, Section } from "../Imports_Project2";
 

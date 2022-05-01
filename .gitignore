@@ -33,6 +33,7 @@ coverage
 .nyc_output
 
 data/
+funcBuild/
 
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
@@ -42,6 +43,8 @@ bower_components
 
 # node-waf configuration
 .lock-wscript
+
+Secrets.ts
 
 # Compiled binary addons (http://nodejs.org/api/addons.html)
 build/Release

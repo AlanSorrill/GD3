@@ -1,4 +1,5 @@
-import { HSV, RGB, RGBA } from "./Imports"
+import { RGB } from "bristolboard"
+
 
 export type ColorDefs = {
     [key: string]: string | string[] | ColorDefs

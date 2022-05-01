@@ -1,14 +1,13 @@
 import React from "react";
 import { Examples_Section } from "./Sections/Examples_Section";
-import { FColor, FColorDirectory,  } from "../Imports";
+
 import { CombineCopyObjects, Device, DeviceType, getCookie, ImportGoogleFont, lerp, lerpTuple, Orientation, setCookie } from "../Helper";
 import { ReactCanvas } from "../ReactCanvas";
 
 import "./HistoryOfJs.css"
 import { Http_Section, Jit_Section, MakeEcmaGreatAgain_Section, Node_Section, Section, Section_Prehistoric, Standardization_Section } from "./Imports_Project2";
-if (typeof fColor == 'undefined') {
-    window.fColor = new FColorDirectory();
-}
+import { ensureFColor, FColor, fColor } from "bristolboard";
+ensureFColor()
 
 
 
@@ -282,7 +281,7 @@ export class Project2Root extends React.Component<Project2Root_Props, Project2Ro
                                 width: '50%',
                                 textAlign: "left",
                                 padding: Device.switch({ desktopHorizontal: 64, phoneHorizontal: 8 }),
-                                color: fColor.white.toHexStr()
+                                color: fColor.white.toHexString()
                             }}>
                                 Sources:<br />
                                 <a href="https://www.youtube.com/watch?v=krB0enBeSiE">Interview with Brendan Eich</a><br />

@@ -2,6 +2,7 @@
 import React, { DOMAttributes, DOMElement } from 'react';
 import ReactDom from 'react-dom'
 import BTree from 'sorted-btree';
+import { Database } from '../srcFunctions/common/WonderData';
 
 export type DeviceType = 'phone' | 'tablet' | 'desktop'
 export type Orientation = 'vertical' | 'horizontal'
@@ -112,6 +113,7 @@ export function CombineCopyObjects<A, B>(a: A, b: B): A & B {
 
 declare global {
     var searchParamObj: any
+    var database: Database
     interface String {
         replaceAll(a: string, b: string): string;
         capitolizeFirstLetter(): Capitalize<string>;
@@ -121,6 +123,7 @@ declare global {
         forMap<B>(transform: (value: T, index: number) => B, startValue: OptFunc<number>, predicate: (index: number, arr: this) => boolean, update: OptFunc<number>): B[]
         insertBetweenEach<T>(item: T | ((afterIndex: number, left: T, right: T) => T)): T[]
         mapOrConsumeInPlace(shouldKeep: (value: T, index: number) => (T | false)): T[]
+        
     }
     interface Number {
         clamp(low: number, high: number): number
@@ -142,6 +145,7 @@ declare global {
 //         return defaultValue;
 //     }
 // }
+
 Array.prototype.mapOrConsumeInPlace = function <T>(shouldKeep: (value: T, index: number) => (T | false)): T[] {
     let ths = this as Array<T>
     let out: T[] = []
@@ -351,6 +355,7 @@ export function lerpTuple<T extends number[]>(start: T, end: T, alpha: number, o
     }
     return out;
 }
+
 
 
 //

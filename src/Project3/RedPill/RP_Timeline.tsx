@@ -1,3 +1,4 @@
+import { fColor } from "bristolboard";
 import React from "react";
 import { Device } from "../../Imports";
 
@@ -29,7 +30,7 @@ export class RP_Timeline_Item extends React.Component<RP_Timeline_Item_Props, RP
             </div>
             <div style={{ position: 'absolute', top: this.lineThickness * 2, height: 0, width: '100%' }}>
                 <div style={{position: 'relative'}}>
-                <div className="heading3" style={{ color: '#F64336', position: "absolute", bottom: 0 }}>{this.props.date}<span className="label" style={{ color: fColor.lightText[0].toHexStr(), paddingLeft: this.padding / 2 }}>{"["}{this.props.source}{"]"}</span></div>
+                <div className="heading3" style={{ color: '#F64336', position: "absolute", bottom: 0 }}>{this.props.date}<span className="label" style={{ color: fColor.lightText[0].toHexString(), paddingLeft: this.padding / 2 }}>{"["}{this.props.source}{"]"}</span></div>
             </div>
             </div>
             <div className="heading2" style={{paddingTop: this.lineThickness * 2}}>{this.props.title}</div>

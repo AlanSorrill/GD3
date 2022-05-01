@@ -1,6 +1,7 @@
+import { FColor, fColor } from "bristolboard";
 import React from "react";
 import { Device, interpolate, lerp, lerpTuple } from "../Helper";
-import { FColor } from "../Imports";
+
 import { CollapseableDiv } from "./CollapseableDiv";
 
 export interface ExplainCard_Props {
