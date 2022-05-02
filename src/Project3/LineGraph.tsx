@@ -1,6 +1,6 @@
 import { BristolBoard, BristolCursor, BristolFont, BristolHAlign, BristolVAlign, lerp, MouseDragListener, MouseMovementListener, MouseWheelListener, RawPointerData, RawPointerMoveData, RawPointerScrollData, SpecialKey, UIElement, UIFrameResult, UIFrame_CornerWidthHeight } from "bristolboard";
 import React from "react";
-import { DataChannel } from "../../srcFunctions/common/WonderData";
+import { DataChannel, MonthNames } from "../../srcFunctions/common/WonderData";
 import { EnglishNumbers, maxOfList, minOfList } from "../Helper";
 
 export interface LineGraph_Props {
@@ -46,10 +46,10 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         this.brist.strokeColor(fColor.black)
         this.brist.strokeWeight(4)
         this.brist.rectFrame(frame, true, true)
+        this.drawXAxis(frame)
 
     }
     onDrawForeground(frame: UIFrameResult, deltaTime: number): void {
-this.drawYAxis(frame)
 
 
     }
@@ -75,17 +75,26 @@ this.drawYAxis(frame)
     get padding() {
         return this.props?.padding
     }
+    initialLoad: boolean = true
     setProps(props: LineGraph_Props) {
         console.log(`UIElement recieved props`, props)
         this.props = props
-        if (this.sources?.length > 0) {
-            this.startTime = minOfList(this.sources.map(s => s.tree.minKey()))
-            this.endTime = maxOfList(this.sources.map(s => s.tree.maxKey()))
-            this.minValue = minOfList(this.sources.map(s => s.minValue))
-            this.maxValue = maxOfList(this.sources.map(s => s.maxValue))
+        if (this.sources?.length > 0 && this.initialLoad) {
+            let maxCount = maxOfList(this.sources.map((s) => s.tree.size))
 
+            this.startTime = minOfList(this.sources.map(s => s.tree.minKey()))
+            this.endTime = Math.max(this.startTime + 1000, maxOfList(this.sources.map(s => s.tree.maxKey())))
+            this.minValue = minOfList(this.sources.map(s => s.minValue))
+            this.maxValue = Math.max(this.minValue + 10, maxOfList(this.sources.map(s => s.maxValue)))
+
+            console.log(`Line graph initialized to ${this.startTime}-${this.endTime}`, maxCount)
             this.startHandle.currentTime = this.startTime;
             this.endHandle.currentTime = this.sources[0].tree.maxKey();
+
+            if (maxCount < 2) {
+                return;
+            }
+            this.initialLoad = false;
         }
 
     }
@@ -104,6 +113,7 @@ this.drawYAxis(frame)
     }
     constructor(id: string, frame: UIFrame_CornerWidthHeight, brist: BristolBoard<UILineGraph>, state: LineGraph_State, props: LineGraph_Props) {
         super(id, frame, brist);
+        console.log(`Line Graph Constructed`)
         this.startHandle = new UILineHandle({ initTime: 0 }, this)
         this.endHandle = new UILineHandle({ initTime: 0 }, this)
         this.lineArea = new UILineArea(this)
@@ -147,7 +157,7 @@ this.drawYAxis(frame)
         return true;
     }
 
-    getXUnits() {
+    getXUnits(): number {
         // let ths = this;
         // let lineHeight = (u: number) => {
         //     return (u / ths..heightInValue) * this.getHeight()
@@ -164,25 +174,66 @@ this.drawYAxis(frame)
         //     // console.log(i)
 
         // }
-        return 1000 * 60 * 60 * 24 * 30
+
+        let a = new Date(this.startTime)
+        a.setDate(1)
+        let b = new Date(a.getTime())
+        b.setMonth(a.getMonth() + 1)
+        let textWidth = this.brist.ctx.measureText(this.dateToText(a)).width
+        let ths = this;
+        let unitWidth = () => (ths.timeToX(b.getTime()) - ths.timeToX(a.getTime()))
+        while (unitWidth() < textWidth) {
+            console.log(`xaxis`,[unitWidth(),textWidth])
+            if (b.getMonth() < 12) {
+                b.setMonth(b.getMonth() + 1)
+            } else {
+                b.setMonth(1)
+                b.setFullYear(b.getFullYear() + 1)
+            }
+        }
+        console.log(`xaxis`,[unitWidth(),textWidth])
+        let deltaYears = b.getFullYear() - a.getFullYear()
+        return b.getMonth() - (deltaYears > 0 ? 0 : a.getMonth()) + 12*deltaYears
     }
-    drawYAxis(frame: UIFrameResult) {
-        let units = this.getXUnits()
-        let d = new Date(this.startTime)
-        let start = new Date(`${d.getFullYear()} ${d.getMonth()} 1`).getTime()
-        this.brist.strokeColor(fColor.grey.base)
+    private setupText() {
         this.brist.fontFamily('Ubuntu')
         this.brist.textSize(24)
-        this.brist.fillColor(fColor.darkMode[5])
         this.brist.textAlign(BristolHAlign.Center, BristolVAlign.Top)
+    }
+    private dateToText(d: Date) {
+        return `${MonthNames[d.getMonth() + 1]}-${d.getFullYear()}`
+    }
+    drawXAxis(frame: UIFrameResult) {
+        let d = new Date(this.startTime)
+        d.setDate(1)
+        d.setMonth(0)
+        this.brist.strokeColor(fColor.grey.base)
+
+        this.brist.fillColor(fColor.darkMode[5])
+        this.setupText()
+        let units = this.getXUnits()
         let textPadding = 16
         // let textWidth = this.brist.ctx.measureText(`${units}   `).width
-        for (let i = Math.max(start - units, 0); i < this.endTime; i += units) {
-            this.brist.ctx.fillText(new Date(i).toLocaleDateString(), this.timeToX(i), frame.bottom - this.footerHeight)
-            this.brist.ctx.beginPath()
-            this.brist.ctx.moveTo(this.timeToX(i), frame.top)
-            this.brist.ctx.lineTo(this.timeToX(i), frame.bottom - this.footerHeight)
-            this.brist.ctx.stroke()
+             console.log('xaxis', units)
+        // console.log('xaxis-----------------------------')
+        while (d.getTime() <= this.endTime) {
+            // console.log(`XAXIS`,d.getMonth())
+            let x = this.timeToX(d.getTime())
+            if (x > 0) {
+
+                this.brist.ctx.fillText(this.dateToText(d), x, frame.bottom - this.footerHeight)
+                this.brist.ctx.beginPath()
+                this.brist.ctx.moveTo(x, frame.top)
+                this.brist.ctx.lineTo(x, frame.bottom - this.footerHeight)
+                this.brist.ctx.stroke()
+
+            }
+            let months = d.getMonth() + units;
+            let years = d.getFullYear() + Math.floor(months / 12)
+            months = ((months) % 12)
+            d.setMonth(months)
+            d.setFullYear(years)
+
         }
     }
 
@@ -208,11 +259,11 @@ export class UILineArea extends UIElement {
         this.brist.ctx.beginPath()
         this.brist.ctx.rect(frame.left, frame.top, frame.width, frame.height)
         this.brist.ctx.clip()
-        this.brist.fillColor(fColor.grey.lighten2)
-        this.brist.strokeColor(fColor.darkMode[5])
-        this.brist.strokeWeight(4)
-        this.brist.ctx.beginPath()
-        this.brist.rectFrame(frame, true, true)
+        // this.brist.fillColor(fColor.grey.lighten2)
+        // this.brist.strokeColor(fColor.darkMode[5])
+        // this.brist.strokeWeight(4)
+        // this.brist.ctx.beginPath()
+        // this.brist.rectFrame(frame, true, true)
 
     }
     lineHeight(u: number) {
@@ -227,7 +278,7 @@ export class UILineArea extends UIElement {
         for (let i = 1; i <= EnglishNumbers.Trillion * 1000; i < EnglishNumbers.Million ? (i < EnglishNumbers.Thousand ? i += 11 : i += 10) : i *= 10) {
             if (lineHeight(i) > 64) {
                 // console.log(i)
-        // console.log(checked)
+                // console.log(checked)
                 return i
             }
             checked.push(i)
@@ -264,7 +315,7 @@ export class UILineArea extends UIElement {
                 this.brist.strokeColor(data.color)
                 this.brist.strokeWeight(4)
                 this.brist.ctx.beginPath();
-                data.tree.forRange(this.graph.startTime, this.graph.endTime, true, (time: number, value: number, count: number) => {
+                data.forRange(this.graph.startTime, this.graph.endTime, (time: number, value: number, count: number) => {
                     if (count == 0) {
                         this.brist.ctx.moveTo(this.graph.timeToX(time, frame), this.valueToY(value, frame))
 

@@ -67,7 +67,7 @@ export const WonderProxy = functions.https.onRequest(async (req, res) => {
   let fetchBody = req.body['request_xml']
 console.log(`Fetch body: ${fetchBody}`)
   let fileName = requestToFileName(fetchBody)
-  let exportPath = path.resolve(__dirname, `../data/${fileName}.json`);
+  let exportPath = path.resolve(__dirname, `../data/${fileName}.xml`);
   if(fs.existsSync(exportPath)){
     console.log(`Using cache for request ${fileName}`)
     res.setHeader('Content-Type', 'application/xml')

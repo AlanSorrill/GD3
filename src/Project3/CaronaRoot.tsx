@@ -22,22 +22,21 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
         if (searchParamObj['redpill'] == 'true') {
             this.setState({ redPill: true })
         }
-        this.listenerIndex = database.addListener(()=>{
+        this.listenerIndex = database.addListener(() => {
             ths.setState({})
         })
         let ths = this;
         //Promise.all([
-            database.pullPopulation(),
+        database.pullPopulation(),
             database.pullDeathsByCause()
-        
+
 
 
     }
     componentWillUnmount(): void {
         database.removeListener(this.listenerIndex)
     }
-    diseaseSearch: React.RefObject<DiseaseSearch> = React.createRef()
-    diseaseSearchContainer: React.RefObject<HTMLDivElement> = React.createRef()
+
     squareDiv: React.RefObject<HTMLDivElement> = React.createRef()
     render() {
         let ths = this;
@@ -58,30 +57,9 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
                 <div style={{ flexGrow: 3, display: 'flex' }}>
                     {/* <img src="./project3/NavSpinny.png" style={{height: '100%'}}/> */}
                     <div ref={ths.squareDiv} style={{ backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundImage: `url("./project3/NavSpinny.png")`, height: '100%', width: ths.squareDiv.current?.clientHeight || 0 }} />
-                    <div ref={this.diseaseSearchContainer} style={{
-                        padding: 32,
-                        backgroundColor: fColor.grey.lighten2.toHexString(),
-                        minWidth: '15vw'
-                    }}>
-
-                        <div style={{ overflowY: 'scroll', maxHeight: (ths.diseaseSearch.current ? ths.diseaseSearchContainer.current.getBoundingClientRect().height - ths.diseaseSearch.current.getHeight() : undefined) }}>
-                            {this.state.diseases.map((disease, index) => {
-                                return <div style={{ padding: 16, display: 'flex' }}>
-                                    <div style={{
-                                        width: 16, height: 16, marginRight: 16,
-                                        borderStyle: 'solid', borderWidth: 1, borderColor: fColor.grey.darken2.toHexString(), borderRadius: 4,
-                                        display: 'inline-block', backgroundColor: ths.generateGraphColor(index).toHexString()
-                                    }} />
-                                    <div style={{ lineHeight: '16px', fontSize: 18, color: fColor.darkText[0].toHexString() }}>{disease[0]}</div>
-                                </div>
-                            })}
-                        </div>
-
-                        <DiseaseSearch ref={ths.diseaseSearch} defaultSelected={['Salmonella enteritis']} allDiseases={database.deathsByCause.pairs()} onChange={function (selected: [string, DataChannel][]) {
-                            ths.setState({ diseases: selected })
-                            console.log(`Selected`, selected)
-                        }} />
-                    </div>
+                    <DiseaseList defaultSelected={['Salmonella enteritis']} onChange={function (selected: [string, DataChannel][]) {
+                        ths.setState({ diseases: selected })
+                    }} />
                     <div style={{ flexGrow: 1 }} />
                 </div>
                 <div style={{ flexGrow: 2, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundImage: `url("./project3/tempChart.PNG")` }} />
@@ -93,15 +71,59 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
 
         </div >
     }
-    defaultGraphColors: FColor[] = [fColor.red.lighten2, fColor.red.base, fColor.red.darken2, fColor.amber.darken2, fColor.amber.base]
-    generateGraphColor(index: number) {
-        if (index >= 0 && index < this.defaultGraphColors.length) {
-            return this.defaultGraphColors[index]
-        }
-        return fColor.randomColor()
-    }
-}
 
+}
+export interface DiseaseList_Props {
+    defaultSelected: Array<string>
+    onChange: (selected: Array<[string, DataChannel]>) => void
+}
+export interface DiseaseList_State {
+    diseases: Array<[string, DataChannel]>
+}
+export class DiseaseList extends React.Component<DiseaseList_Props, DiseaseList_State>{
+    constructor(props: DiseaseList_Props) {
+        super(props);
+        this.state = { diseases: [] }
+    }
+    diseaseSearch: React.RefObject<DiseaseSearch> = React.createRef()
+    diseaseSearchContainer: React.RefObject<HTMLDivElement> = React.createRef()
+    scrollDiv: React.RefObject<HTMLDivElement> = React.createRef()
+    get scrollerMaxHeight() {
+        return (this.diseaseSearch.current ? this.diseaseSearchContainer.current.getBoundingClientRect().height - this.diseaseSearch.current.getHeight() - 64 : undefined)
+    }
+    render() {
+        let ths = this
+        return <div ref={this.diseaseSearchContainer} style={{
+            padding: 32,
+            backgroundColor: fColor.grey.lighten2.toHexString(),
+            minWidth: '15vw'
+        }}>
+
+            <div ref={this.scrollDiv} style={{
+                overflowY: (ths.scrollDiv.current ? (ths.scrollDiv.current.clientHeight >= ths.scrollerMaxHeight ? 'scroll' : 'unset') : 'unset'),
+                maxHeight: ths.scrollerMaxHeight
+            }}>
+                {this.state.diseases.map((disease, index) => {
+                    return <div style={{ padding: 16, display: 'flex' }}>
+                        <div style={{
+                            width: 16, height: 16, marginRight: 16,
+                            borderStyle: 'solid', borderWidth: 1, borderColor: fColor.grey.darken2.toHexString(), borderRadius: 4,
+                            display: 'inline-block', backgroundColor: disease[1].color.toHexString()
+                        }} />
+                        <div style={{ lineHeight: '16px', fontSize: 18, color: fColor.darkText[0].toHexString(), maxWidth: '15vw' }}>{disease[0]}</div>
+                    </div>
+                })}
+            </div>
+
+            <DiseaseSearch ref={ths.diseaseSearch} defaultSelected={this.props.defaultSelected} allDiseases={database.deathsByCause.pairs()} onChange={function (selected: [string, DataChannel][]) {
+                ths.setState({ diseases: selected })
+                ths.props.onChange(selected)
+                console.log(`Selected`, selected)
+            }} />
+        </div>
+    }
+    
+}
 export interface DiseaseSearch_Props {
     allDiseases: Array<[string, DataChannel]>,
     defaultSelected: Array<string>
@@ -126,7 +148,12 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
     componentDidUpdate(prevProps: Readonly<DiseaseSearch_Props>, prevState: Readonly<DiseaseSearch_State>, snapshot?: any): void {
         if (!this.state.defaultsLoaded && this.props.allDiseases.length > 0) {
             let m = new Map(this.props.allDiseases)
-            let selected: Array<[string, DataChannel]> = this.props.defaultSelected.map((name) => ([name, m.get(name)]))
+            let ths = this;
+            let selected: Array<[string, DataChannel]> = this.props.defaultSelected.map((name, index) => {
+                let d = m.get(name)
+                d.color = ths.generateGraphColor(index)
+                return [name, m.get(name)]
+            })
             this.setState({ selectedDiseases: selected, defaultsLoaded: true })
             this.props.onChange(selected)
         }
@@ -164,6 +191,7 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
                         return <div className={fColor.grey.lighten3.hoverCssClass}
                             style={{ marginBottom: 2, maxWidth: 500, color: fColor.darkText[0].toHexString(), cursor: 'pointer' }} onClick={() => {
                                 let list = ths.state.selectedDiseases
+                                disease[1].color = ths.generateGraphColor(list.length)
                                 list.push(disease)
                                 ths.props.onChange(list)
                                 ths.setState({ selectedDiseases: list, showList: false })
@@ -179,6 +207,14 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
                 </div>
             </div>
         </div>
+    }
+    defaultGraphColors: FColor[] = [fColor.red.lighten2, fColor.red.base, fColor.red.darken2, fColor.amber.darken2, fColor.amber.base]
+    generateGraphColor(index: number) {
+        
+        if (index >= 0 && index < this.defaultGraphColors.length) {
+            return this.defaultGraphColors[index]
+        }
+        return fColor.randomColor()
     }
 }
 {/* <div style={{

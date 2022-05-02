@@ -14,6 +14,7 @@ export function isWQP_None(param: string | WonderQueryParam_Util): param is (key
 }
 export type YearString = '1999' | '2000' | '2001' | '2002' | '2003' | '2004' | '2005' | '2006' | '2007' | '2008' | '2009' | '2010' | '2011' | '2012' | '2013' | '2014' | '2015' | '2016' | '2017' | '2018' | '2019' | '2020'
 export type MonthString = '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12'
+export enum MonthNames {Jan = 1, Feb=2,Mar=3,Apr=4,May=5,Jun=6,Jul=7,Aug=8,Sep=9,Oct=10,Nov=11,Dec=12}
 export type YearAndMonthString<year extends YearString, month extends MonthString> = `${year}/${month}`
 export function YearStrings(start: number = 1999, end: number = 2020): YearString[] {
   let out = []
@@ -817,5 +818,20 @@ export class DataChannel {
       this.maxValue = value;
     }
     this.tree.set(time, value)
+  }
+  forRange(start: number, end: number, onEach: (time: number, value: number, count: number) => void) {
+    if (!this.tree) {
+      return;
+    }
+    let startNode = this.tree.getPairOrNextLower(start)
+    if(!startNode){
+      startNode = this.tree.getPairOrNextHigher(start)
+    }
+    let endNode = this.tree.getPairOrNextHigher(end)
+    if(!endNode){
+      endNode = this.tree.getPairOrNextLower(end)
+    }
+    
+    this.tree.forRange(startNode[0], endNode[0], true, onEach)
   }
 }
