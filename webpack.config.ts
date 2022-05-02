@@ -6,9 +6,9 @@ var nodeExternals = require('webpack-node-externals');
 const webConfig: Configuration = {
 
     mode: 'development',
-    devtool: 'eval-source-map',
+    devtool: 'source-map',
     entry: {
-        
+
         'lib': {
             import: ['react', 'react-dom']
         },
@@ -53,9 +53,13 @@ const webConfig: Configuration = {
         path: path.resolve(__dirname),
         libraryTarget: 'commonjs',
 
-        chunkFilename: '[id].[chunkhash].js'
+        chunkFilename: '[id].[chunkhash].js',
+
+        // devtoolModuleFilenameTemplate: function(info){
+        //     return `file:///${info.absoluteResourcePath.replace(/\\/g, '/')}`;
+        //   }
     },
-    
+
     plugins: [
         // new MonacoWebpackPlugin({languages: ['typescript', 'javascript', 'json']})
     ],
@@ -69,7 +73,7 @@ const functionsConfig: Configuration = {
         'index': {
             import: './srcFunctions/WPFunctions.ts'
         },
-        
+
     },
     target: 'node',
     module: {
@@ -91,19 +95,22 @@ const functionsConfig: Configuration = {
     resolve: {
         extensions: ['.tsx', '.ts', '.js'],
     },
-    externals: [nodeExternals(),'firebase-admin', 'firebase-functions', 'firebase','fs/promises'],
+    externals: [nodeExternals(), 'firebase-admin', 'firebase-functions', 'firebase', 'fs/promises'],
     output: {
         filename: '[name].js',
         publicPath: '/',
         libraryTarget: 'commonjs',
-        path: path.resolve(__dirname,'functions'),
+        path: path.resolve(__dirname, 'functions'),
         // libraryTarget: 'commonjs',
         // chunkFilename: '[id].[chunkhash].js'
+        // devtoolModuleFilenameTemplate: function(info){
+        //     return "file:///"+encodeURI(info.absoluteResourcePath);
+        //   }
     },
     plugins: [
         // new MonacoWebpackPlugin({languages: ['typescript', 'javascript', 'json']})
     ],
-    
+
 };
 
 export default [webConfig, functionsConfig];

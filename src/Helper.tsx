@@ -123,6 +123,7 @@ declare global {
         forMap<B>(transform: (value: T, index: number) => B, startValue: OptFunc<number>, predicate: (index: number, arr: this) => boolean, update: OptFunc<number>): B[]
         insertBetweenEach<T>(item: T | ((afterIndex: number, left: T, right: T) => T)): T[]
         mapOrConsumeInPlace(shouldKeep: (value: T, index: number) => (T | false)): T[]
+        limit(count: number): T[]
         
     }
     interface Number {
@@ -132,6 +133,10 @@ declare global {
         negate(): number
         oneMinus(): number
         isEven(): boolean
+        toEnglish(): string
+    }
+    interface Map<K,V>{
+        pairs(): Array<[K,V]>
     }
     // interface Object {
     //     getWithDefault<KEY extends keyof this>(key: KEY, defaultValue: this[KEY]): this[KEY]
@@ -145,14 +150,69 @@ declare global {
 //         return defaultValue;
 //     }
 // }
+Map.prototype.pairs = function<K,V>(){
+    let out = []
+    let ths = this as Map<K,V>
+    for(let key of ths.keys()){
+        out.push([key, ths.get(key)])
+    }
+    return out;
+}
+Array.prototype.limit = function<T>(count: number){
+    let ths = this as Array<T>
+    if(count > ths.length){
+        return ths;
+    }
+    let out = []
+    for(let i = 0;i<count;i++){
+        out.push(this[i])
+    }
+    return out;
+}
+export function ToPairs<V>(obj: Object): Array<[string, V]> {
+    let keys = Object.keys(obj)
+    let out = []
+    for (let i = 0; i < keys.length; i++) {
+        out.push([keys[i], obj[keys[i]]])
+    }
+    return out
+}
+const EnglishNumbers = {
+    Houndred: 100,
+    Thousand: 1000,
+    Million: 1000000,
+    Billion: 1000000000,
+    Trillion: 1000000000000
+}
+export {EnglishNumbers}
+Number.prototype.toEnglish = function () {
+    let ths = this as number
+    let abs = Math.abs(ths)
+    let pairs = ToPairs<number>(EnglishNumbers).sort((a, b) => (a[1] - b[1]))
+    // console.log(pairs)
+    if(abs < 100){
+        return ths + ''
+    }
+    for (let i = 0; i < pairs.length; i++) {
+        let pair = pairs[i]
+        if (abs < pair[1] * 10) {
+            if(abs / pair[1] < 1 && i > 0){
+                return `${ths / pairs[i-1][1]} ${pairs[i-1][0]}`
+            }
+            return `${ths / pair[1]} ${pair[0]}`
+        }
+    }
+    return `${ths}`
+
+}
 
 Array.prototype.mapOrConsumeInPlace = function <T>(shouldKeep: (value: T, index: number) => (T | false)): T[] {
     let ths = this as Array<T>
     let out: T[] = []
     for (let i = 0; i < ths.length; i++) {
         let fresh = shouldKeep(this[i], i)
-        if(fresh == false){
-            ths.splice(i,1);
+        if (fresh == false) {
+            ths.splice(i, 1);
         } else {
             this[i] = fresh
         }
@@ -435,7 +495,26 @@ export class RectOnScreen {
         return (0).alphaInRange(box.top, box.bottom - window.innerHeight)
     }
 }
-
+export function maxOfList(vals: number[]) {
+    if (vals.length == 0) {
+        return 0
+    }
+    let maxValue = vals[0]
+    for (let i = 1; i < vals.length; i++) {
+        maxValue = Math.max(maxValue, vals[i])
+    }
+    return maxValue
+}
+export function minOfList(vals: number[]) {
+    if (vals.length == 0) {
+        return 0
+    }
+    let minValue = vals[0]
+    for (let i = 1; i < vals.length; i++) {
+        minValue = Math.min(minValue, vals[i])
+    }
+    return minValue
+}
 export type FCurveInterp = 'linear'
 export type FCurveStop = [time: number, value: number] | [time: number, value: number, interp: FCurveInterp]
 export class FCurve<T extends FCurveStop[]> {

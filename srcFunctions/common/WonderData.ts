@@ -13,7 +13,8 @@ export function isWQP_None(param: string | WonderQueryParam_Util): param is (key
   return (param == 'None') || (param == WonderQueryParam_Util.None)
 }
 export type YearString = '1999' | '2000' | '2001' | '2002' | '2003' | '2004' | '2005' | '2006' | '2007' | '2008' | '2009' | '2010' | '2011' | '2012' | '2013' | '2014' | '2015' | '2016' | '2017' | '2018' | '2019' | '2020'
-
+export type MonthString = '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12'
+export type YearAndMonthString<year extends YearString, month extends MonthString> = `${year}/${month}`
 export function YearStrings(start: number = 1999, end: number = 2020): YearString[] {
   let out = []
   for (let i = start; i <= end; i++) {
@@ -324,7 +325,7 @@ export class WonderRequest {
     this.addParam(`O_age`, [WonderQueryParam_AgeGroup[groupName]])
     return this;
   }
-  filterByYear(years: WonderQueryParam_Util.All | YearString[]) {
+  filterByYear(years: WonderQueryParam_Util.All | (YearString | YearAndMonthString<any, any>)[]) {
     //let val = (typeof years == 'string') ? years : years.map(y => `${y} (${y})`).join(' ')
     // return this.addParam('I_D76.V1', val);
     return this.addParam(`F_D76.V1`, years)
@@ -369,20 +370,20 @@ export class WonderRequest {
     let ths = this;
     for (let key in this.defaultParams) {
       if (!(isAnyTrue(ths.alternatives(key).map((altKey) => {
-        console.log(`Checking alternative ${altKey}`)
+        // console.log(`Checking alternative ${altKey}`)
         if (ths.params.has(altKey)) {
-          console.log(`----Alt Found ${altKey}`)
+          // console.log(`----Alt Found ${altKey}`)
         }
         return ths.params.has(altKey)
       })))) {
 
-        console.log(`Defaulting ${key} (${DeWonder(key)}) to ${this.defaultParams[key]}`)
+        // console.log(`Defaulting ${key} (${DeWonder(key)}) to ${this.defaultParams[key]}`)
         this.params.set(key, this.defaultParams[key]);
       }
     }
   }
   toString() {
-    console.log(`Building query string`)
+    // console.log(`Building query string`)
     let ths = this;
     let toProcess: [string, string[]][] = []
     let processed: Map<string, boolean> = new Map()
@@ -430,7 +431,7 @@ export class WonderRequest {
     })
 
     keyList.consume((key: string) => {
-      console.log(`Uordered parameter ${key}`)
+      // console.log(`Uordered parameter ${key}`)
       toProcess.push([key, ths.params.get(key)])
       return true;
 
@@ -441,9 +442,9 @@ export class WonderRequest {
     //     toProcess.push([key, this.params.get(key)])
     //   }
     // }
-    console.log(`Full Query:\n${toProcess.map((param: [string, string[]]) => `${param[0]}(${DeWonder(param[0])}) = \n${param[1].join('\n--')}\n`)}`)
+    // console.log(`Full Query:\n${toProcess.map((param: [string, string[]]) => `${param[0]}(${DeWonder(param[0])}) = \n${param[1].join('\n--')}\n`)}`)
     return toProcess.map((param: [string, string[]], index: number) => {
-      console.log(`Mapping ${param[0]} (${DeWonder(param[0])}) to `, param[1])
+      // console.log(`Mapping ${param[0]} (${DeWonder(param[0])}) to `, param[1])
       return `<parameter><name>${param[0]}</name>${param[1].length > 0 ? param[1].map(str => `<value>${str}</value>`).join('') : '<value />'}</parameter>`
     }).join('')
   }
@@ -666,14 +667,43 @@ export type RawRonaColumns = [DataAsOf: number, StartDate: number, EndDate: numb
   Footnote: string]
 const RawRonaColumnsDefault: RawRonaColumns = [0, 0, 0, '', 0, 0, '', '', '', 0, 0, 0, 0, 0, 0, '']
 export type AgeGroup = '< 1 year' | '1-4 years' | '5-14 years' | '15-24 years' | '25-34 years' | '35-44 years' | '45-54 years' | '55-64 years' | '65-74 years' | '75-84 years' | '85+ years' | 'Not Stated'
+
 export class Database {
   deathsByCause: Map<string, DataChannel> = new Map()
   populationByAge: Map<AgeGroup, DataChannel> = new Map()
   constructor() {
 
   }
+  private getColorForAgeGroup(ageGroup: AgeGroup): FColor {
+    switch (ageGroup) {
+      case '1-4 years':
+        return fColor.blue.darken1
+      case '15-24 years':
+        return fColor.blue.darken2
+      case '25-34 years':
+        return fColor.blue.darken3
+      default:
+        return fColor.blue.base
+    }
+  }
+  private updateListeners: Map<number, () => void> = new Map()
+  private updateListenerCount = 0
+  addListener(onUpdate: () => void) {
+    let index = this.updateListenerCount++
+    this.updateListeners.set(index, onUpdate)
+    return index;
+  }
+  removeListener(index: number) {
+    this.updateListeners.delete(index)
+  }
+  notifyListeners() {
+    for (let listener of this.updateListeners.values()) {
+      listener()
+    }
+  }
   getPopulationForAge(ageGroup: AgeGroup) {
-    return this.populationByAge.getWithDefault(ageGroup, () => new DataChannel(`AgeGroup${ageGroup}`))
+    let ths = this;
+    return this.populationByAge.getWithDefault(ageGroup, (ag) => new DataChannel(`AgeGroup${ag}`, ths.getColorForAgeGroup(ag)))
   }
   getDeathsForCause(causeName: string) {
     if (!this.deathsByCause.has(causeName)) {
@@ -733,6 +763,7 @@ export class Database {
   async pullPopulation() {
     let ths = this;
     let population = await new WonderRequest().groupBy('Year').groupBy('AgeGroups').requestTable(true, true)
+
     population.rows.forEach((row: [year: string, ageGroup: string, deaths: number, population: number, crudeRate: number | string]) => {
       let time = new Date(row[0].isNumber() ? `${row[0]} 1 1` : row[0]).getTime()
       let tree = ths.getPopulationForAge(row[1] as AgeGroup)
@@ -743,12 +774,26 @@ export class Database {
   }
   async pullDeathsByCause() {
     let ths = this;
-    let deaths = await new WonderRequest().groupBy('CauseOfdeath').groupBy('AgeGroups').filterByYear(['2019', '2020']).requestTable(true, true)
-    deaths.rows.forEach((row: [causeOfDeath: string, tenYear: string, deaths: number, population: number, crudeRate: number | string]) => {
-      let time = new Date(row[0].isNumber() ? `${row[0]} 1 1` : row[0]).getTime()
-      let tree = ths.getDeathsForCause(row[0])
-      tree.set(time, row[2])
-    })
+    for (let year = 1999; year <= 2020; year++) {
+      for (let month = 1; month <= 12; month++) {
+        let yearMonth: YearAndMonthString<any, any> = `${year}/${month <= 9 ? '0' + month : month}`
+        console.log(`Pulling deaths in ${yearMonth}`)
+        let deaths = await new WonderRequest().groupBy('CauseOfdeath').groupBy('AgeGroups').groupBy('Month').filterByYear([yearMonth]).requestTable(true, true)
+        let count = 0
+        deaths.rows.forEach((row: [causeOfDeath: string, tenYear: string, month: string, deaths: number, population: number, crudeRate: number | string], index) => {
+          let time = new Date(row[2].isNumber() ? (row[2].includes('/') ? `${row[2].split('/')[0]} ${row[2].split('/')[1]} 1` : `${row[2]} 1 1`) : row[2]).getTime()
+          let tree = ths.getDeathsForCause(row[0])
+          tree.set(time, row[3])
+          count++
+          if (count > 1000) {
+            count = 0;
+            // console.log(`Added ${index} rows`)
+          }
+        })
+        ths.notifyListeners()
+      }
+    }
+
     return this.deathsByCause
   }
 
@@ -764,11 +809,11 @@ export class DataChannel {
     this.title = title;
     this.color = color;
   }
-  set(time: number, value: number){
-    if(this.minValue == null || value < this.minValue){
+  set(time: number, value: number) {
+    if (this.minValue == null || value < this.minValue) {
       this.minValue = value;
     }
-    if(this.maxValue == null || value > this.maxValue){
+    if (this.maxValue == null || value > this.maxValue) {
       this.maxValue = value;
     }
     this.tree.set(time, value)

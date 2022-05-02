@@ -1,6 +1,7 @@
-import { BristolBoard, BristolFont, lerp, MouseDragListener, MouseMovementListener, RawPointerData, RawPointerMoveData, UIElement, UIFrameResult, UIFrame_CornerWidthHeight } from "bristolboard";
+import { BristolBoard, BristolCursor, BristolFont, BristolHAlign, BristolVAlign, lerp, MouseDragListener, MouseMovementListener, MouseWheelListener, RawPointerData, RawPointerMoveData, RawPointerScrollData, SpecialKey, UIElement, UIFrameResult, UIFrame_CornerWidthHeight } from "bristolboard";
 import React from "react";
 import { DataChannel } from "../../srcFunctions/common/WonderData";
+import { EnglishNumbers, maxOfList, minOfList } from "../Helper";
 
 export interface LineGraph_Props {
     style: React.CSSProperties & {
@@ -19,70 +20,49 @@ export class LineGraph extends React.Component<LineGraph_Props, LineGraph_State>
     bristol: React.RefObject<BristolBoard<UILineGraph>> = React.createRef()
     componentDidUpdate(prevProps: Readonly<LineGraph_Props>, prevState: Readonly<LineGraph_State>, snapshot?: any): void {
         if (this.bristol.current) {
-            this.bristol.current.rootElement.setState(this.state)
-            this.bristol.current.rootElement.setProps(this.props)
+            if (!window['LineGraphBrist']) {
+                window['LineGraphBrist'] = this.bristol.current
+            }
+            this.bristol.current.rootElement?.setState(this.state)
+            this.bristol.current.rootElement?.setProps(this.props)
         }
     }
     render(): React.ReactNode {
         let ths = this;
-        return <div style={{ display: 'flex' }}>
-            <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ flexGrow: 1 }} />
-                {this.props.sources?.map((data: DataChannel) => <div>
-                    {data.title}
-                </div>)}
-            </div>
-            <div style={{ flexGrow: 4 }}>
-                <BristolBoard<UILineGraph> ref={this.bristol} style={{ background: 'transparent', width: '100%', height: '100%' }} buildRootElement={async (brist) => {
-                    return new UILineGraph('ROOT', new UIFrame_CornerWidthHeight({ x: () => this.props.padding, y: () => this.props.padding, width: () => brist.getWidth() - (ths.props.padding * 2), height: () => brist.getHeight() - (ths.props.padding * 2) }), brist, this.state, this.props);
-                }} />
-            </div>
+        return <div style={this.props.style}>
+            <BristolBoard<UILineGraph> ref={this.bristol} style={{ background: 'transparent', height: '100%' }} buildRootElement={async (brist) => {
+                return new UILineGraph('ROOT', new UIFrame_CornerWidthHeight({ x: () => this.props.padding, y: () => this.props.padding, width: () => brist.getWidth() - (ths.props.padding * 2), height: () => brist.getHeight() - (ths.props.padding * 2) }), brist, this.state, this.props);
+            }} />
         </div>
         return
     }
 }
 
-export class UILineGraph extends UIElement implements MouseDragListener {
+export class UILineGraph extends UIElement implements MouseDragListener, MouseWheelListener {
     props: LineGraph_Props
     state: LineGraph_State;
     onDrawBackground(frame: UIFrameResult, deltaTime: number): void {
+        this.brist.fillColor(fColor.grey.lighten4)
+        this.brist.strokeColor(fColor.black)
+        this.brist.strokeWeight(4)
+        this.brist.rectFrame(frame, true, true)
 
-        this.brist.ctx.clearRect(frame.left, frame.top, frame.width, frame.height)
     }
     onDrawForeground(frame: UIFrameResult, deltaTime: number): void {
+this.drawYAxis(frame)
 
-        if (this.sources) {
-            this.brist.noFill()
-            this.sources.forEach((data: DataChannel) => {
-                this.brist.strokeColor(data.color)
-                this.brist.strokeWeight(4)
-                this.brist.ctx.beginPath();
-                data.tree.forRange(this.startTime, this.endTime, true, (time: number, value: number, count: number) => {
-                    if (count == 0) {
-                        this.brist.ctx.moveTo(this.timeToX(time, frame), this.valueToY(value, frame))
-
-                    } else {
-                        this.brist.ctx.lineTo(this.timeToX(time, frame), this.valueToY(value, frame))
-
-                    }
-                })
-                this.brist.ctx.stroke()
-            })
-            this.brist.ctx.beginPath();
-
-        } else {
-            this.brist.ellipse(lerp(frame.left, frame.right, (Date.now() / 1000) % 1), frame.centerY, frame.width / 5, frame.width / 5, false, true)
-
-        }
 
     }
-    timeToX(time: number, frame: UIFrameResult) {
+    get footerHeight() {
+        return this.getHeight() * 0.1
+    }
+    timeToX(time: number, frame: UIFrameResult = null) {
+        if (frame == null) { frame = this.frame.result }
+        if (frame == null) { return 0 }
         return frame.left + time.alphaInRange(this.startTime, this.endTime, false) * frame.width
 
     }
-    valueToY(value: number, frame: UIFrameResult) {
-        return frame.left + value.alphaInRange(this.minValue, this.maxValue, false) * frame.width
-    }
+
 
 
     setState(state: LineGraph_State) {
@@ -99,32 +79,293 @@ export class UILineGraph extends UIElement implements MouseDragListener {
         console.log(`UIElement recieved props`, props)
         this.props = props
         if (this.sources?.length > 0) {
-            this.startTime = this.sources[0].tree.minKey()
-            this.endTime = this.sources[0].tree.maxKey()
-            this.minValue = this.sources[0].minValue
-            this.maxValue = this.sources[0].maxValue
+            this.startTime = minOfList(this.sources.map(s => s.tree.minKey()))
+            this.endTime = maxOfList(this.sources.map(s => s.tree.maxKey()))
+            this.minValue = minOfList(this.sources.map(s => s.minValue))
+            this.maxValue = maxOfList(this.sources.map(s => s.maxValue))
+
+            this.startHandle.currentTime = this.startTime;
+            this.endHandle.currentTime = this.sources[0].tree.maxKey();
         }
 
     }
-    maxValue: number
-    minValue: number
-    startTime: number
-    endTime: number
+    maxValue: number = 10
+    minValue: number = 0
+    startTime: number = 0
+    endTime: number = 10
+    startHandle: UILineHandle
+    endHandle: UILineHandle
+    lineArea: UILineArea;
+    get widthInTime() {
+        return this.endTime - this.startTime
+    }
+    get heightInValue() {
+        return this.maxValue - this.minValue
+    }
     constructor(id: string, frame: UIFrame_CornerWidthHeight, brist: BristolBoard<UILineGraph>, state: LineGraph_State, props: LineGraph_Props) {
         super(id, frame, brist);
+        this.startHandle = new UILineHandle({ initTime: 0 }, this)
+        this.endHandle = new UILineHandle({ initTime: 0 }, this)
+        this.lineArea = new UILineArea(this)
+        this.addChild(this.lineArea)
+        this.addChild(this.startHandle)
+        this.addChild(this.endHandle)
+    }
+    mouseWheel(evt: RawPointerScrollData): boolean {
+        let amount = (evt.amount > 0 ? 1 : -1) * 0.05
+        if (this.brist.isKeyPressed(SpecialKey.Control)) {
+            // amount = this.heightInValue * amount 
+            console.log(this.lineArea.lineHeight(EnglishNumbers.Thousand), this.lineArea.lineHeight(EnglishNumbers.Million))
+            let spot = evt.position[1].alphaInRange(this.frame.topY(), this.frame.bottomY())
+            this.minValue -= amount / 2 * spot.oneMinus() * this.heightInValue
+            this.maxValue += amount / 2 * spot * this.heightInValue
+            this.minValue = Math.max(this.minValue, 0)
+        } else {
 
+            let spot = evt.position[0].alphaInRange(this.frame.leftX(), this.frame.rightX())
+            this.startTime -= amount / 2 * spot * this.widthInTime
+            this.endTime += amount / 2 * spot.oneMinus() * this.widthInTime
+        }
+        return true
     }
     shouldDragLock(event: RawPointerData | [start: RawPointerData, lastMove: RawPointerMoveData]): boolean {
         return true;
     }
     mouseDragged(evt: RawPointerMoveData): boolean {
-        let dragInTime = (Math.abs(evt.delta[0]).alphaInRange(0, this.frame.measureWidth()) * (this.endTime - this.startTime)) * (evt.delta[0] < 0 ? -1 : 1)
+        let dragInTime = (Math.abs(evt.delta[0]).alphaInRange(0, this.frame.measureWidth()) * (this.widthInTime)) * (evt.delta[0] < 0 ? -1 : 1)
+        let dragInValue = (Math.abs(evt.delta[1]).alphaInRange(0, this.frame.measureHeight()) * (this.heightInValue)) * (evt.delta[1] < 0 ? -1 : 1)
         this.startTime = this.startTime + dragInTime
         this.endTime = this.endTime + dragInTime
+        if (this.minValue - dragInValue < 0) {
+            dragInValue = dragInValue - Math.abs(this.minValue - dragInValue)
+        }
+        this.minValue = this.minValue - dragInValue
+        this.maxValue = this.maxValue - dragInValue
         return true;
     }
     onDragEnd(event: RawPointerData | RawPointerMoveData): boolean {
         return true;
+    }
+
+    getXUnits() {
+        // let ths = this;
+        // let lineHeight = (u: number) => {
+        //     return (u / ths..heightInValue) * this.getHeight()
+        // }
+        // let checked = []
+        // for (let i = 1; i <= EnglishNumbers.Trillion * 1000; i < EnglishNumbers.Million ? (i < EnglishNumbers.Thousand ? i += 11 : i += 10) : i *= 10) {
+        //     if (lineHeight(i) > 64) {
+        //         // console.log(i)
+        // // console.log(checked)
+        //         return i
+        //     }
+        //     checked.push(i)
+        //     // console.log(`Checking ${i}`)
+        //     // console.log(i)
+
+        // }
+        return 1000 * 60 * 60 * 24 * 30
+    }
+    drawYAxis(frame: UIFrameResult) {
+        let units = this.getXUnits()
+        let d = new Date(this.startTime)
+        let start = new Date(`${d.getFullYear()} ${d.getMonth()} 1`).getTime()
+        this.brist.strokeColor(fColor.grey.base)
+        this.brist.fontFamily('Ubuntu')
+        this.brist.textSize(24)
+        this.brist.fillColor(fColor.darkMode[5])
+        this.brist.textAlign(BristolHAlign.Center, BristolVAlign.Top)
+        let textPadding = 16
+        // let textWidth = this.brist.ctx.measureText(`${units}   `).width
+        for (let i = Math.max(start - units, 0); i < this.endTime; i += units) {
+            this.brist.ctx.fillText(new Date(i).toLocaleDateString(), this.timeToX(i), frame.bottom - this.footerHeight)
+            this.brist.ctx.beginPath()
+            this.brist.ctx.moveTo(this.timeToX(i), frame.top)
+            this.brist.ctx.lineTo(this.timeToX(i), frame.bottom - this.footerHeight)
+            this.brist.ctx.stroke()
+        }
+    }
+
+}
+
+export class UILineArea extends UIElement {
+    graph: UILineGraph;
+    constructor(parent: UILineGraph) {
+        super(UIElement.createUID('LineArea'), new UIFrame_CornerWidthHeight({ x: 0, y: 0, width: () => parent.getWidth(), height: () => parent.getHeight() - parent.footerHeight }), parent.brist)
+        this.graph = parent;
+    }
+    get sources() {
+        return this.graph.sources
+    }
+
+    valueToY(value: number, frame: UIFrameResult = null) {
+        if (frame == null) { frame = this.frame.result }
+        if (frame == null) { return 0 }
+        return frame.top + (value.alphaInRange(this.graph.minValue, this.graph.maxValue, false).oneMinus()) * frame.height
+    }
+    onDrawBackground(frame: UIFrameResult, deltaTime: number): void {
+        this.brist.ctx.save()
+        this.brist.ctx.beginPath()
+        this.brist.ctx.rect(frame.left, frame.top, frame.width, frame.height)
+        this.brist.ctx.clip()
+        this.brist.fillColor(fColor.grey.lighten2)
+        this.brist.strokeColor(fColor.darkMode[5])
+        this.brist.strokeWeight(4)
+        this.brist.ctx.beginPath()
+        this.brist.rectFrame(frame, true, true)
+
+    }
+    lineHeight(u: number) {
+        return (u / this.graph.heightInValue) * this.getHeight()
+    }
+    getYUnits() {
+        let ths = this;
+        let lineHeight = (u: number) => {
+            return (u / ths.graph.heightInValue) * this.getHeight()
+        }
+        let checked = []
+        for (let i = 1; i <= EnglishNumbers.Trillion * 1000; i < EnglishNumbers.Million ? (i < EnglishNumbers.Thousand ? i += 11 : i += 10) : i *= 10) {
+            if (lineHeight(i) > 64) {
+                // console.log(i)
+        // console.log(checked)
+                return i
+            }
+            checked.push(i)
+            // console.log(`Checking ${i}`)
+            // console.log(i)
+
+        }
+        return 1000000
+    }
+    drawYAxis(frame: UIFrameResult) {
+        let units = this.getYUnits()
+        let start = this.graph.minValue - this.graph.minValue % units
+        this.brist.strokeColor(fColor.grey.base)
+        this.brist.fontFamily('Ubuntu')
+        this.brist.textSize(24)
+        this.brist.fillColor(fColor.darkMode[5])
+        this.brist.textAlign(BristolHAlign.Left, BristolVAlign.Bottom,)
+        let textPadding = 16
+        // let textWidth = this.brist.ctx.measureText(`${units}   `).width
+        for (let i = Math.max(start - units, 0); i < this.graph.maxValue; i += units) {
+            this.brist.ctx.fillText(i.toEnglish(), frame.left + textPadding, this.valueToY(i, frame))
+            this.brist.ctx.beginPath()
+            this.brist.ctx.moveTo(frame.left + textPadding, this.valueToY(i, frame))
+            this.brist.ctx.lineTo(frame.right, this.valueToY(i, frame))
+            this.brist.ctx.stroke()
+        }
+    }
+    onDrawForeground(frame: UIFrameResult, deltaTime: number): void {
+        this.drawYAxis(frame);
+
+        if (this.sources) {
+            this.brist.noFill()
+            this.sources.forEach((data: DataChannel) => {
+                this.brist.strokeColor(data.color)
+                this.brist.strokeWeight(4)
+                this.brist.ctx.beginPath();
+                data.tree.forRange(this.graph.startTime, this.graph.endTime, true, (time: number, value: number, count: number) => {
+                    if (count == 0) {
+                        this.brist.ctx.moveTo(this.graph.timeToX(time, frame), this.valueToY(value, frame))
+
+                    } else {
+                        this.brist.ctx.lineTo(this.graph.timeToX(time, frame), this.valueToY(value, frame))
+
+                    }
+                })
+                this.brist.ctx.stroke()
+            })
+            this.brist.ctx.beginPath();
+
+        } else {
+            this.brist.ellipse(lerp(frame.left, frame.right, (Date.now() / 1000) % 1), frame.centerY, frame.width / 5, frame.width / 5, false, true)
+
+        }
+
+        this.brist.ctx.restore()
+    }
+
+}
+
+export interface UILineHandle_Options {
+    initTime: number
+}
+export class UILineHandle extends UIElement implements MouseDragListener, MouseMovementListener {
+    frame: UIFrame_CornerWidthHeight
+    graph: UILineGraph;
+    constructor(options: UILineHandle_Options, graph: UILineGraph) {
+        super(UIElement.createUID('LineHandle'), new UIFrame_CornerWidthHeight({ x: 0, y: 0, width: 32, height: () => graph.getHeight() }), graph.brist)
+        this.graph = graph
+        this.currentTime = options.initTime
+        let ths = this;
+        this.frame.description.x = () => {
+            return graph.timeToX(ths.currentTime) - (ths.getWidth() / 2)
+        }
+        this.frame.containsPoint = (x: number, y: number) => {
+            return (y >= ths.frame.topY() && y <= ths.frame.bottomY()) &&
+                ((Math.abs(x - this.frame.centerX()) < this.lineWidth / 2) || (
+                    ths.isOverTab(x, y)
+                ))
+        }
+
+    }
+    isOverTab(x: number, y: number) {
+        return (y <= this.frame.bottomY()) && (y >= this.frame.bottomY() - this.tabHeight) && (x >= this.frame.leftX() && x <= this.frame.rightX())
+    }
+    mouseEnter(evt: RawPointerMoveData): boolean {
+        this.brist.cursor(this.getCursor(evt.position[0], evt.position[1]))
+        return true
+    }
+
+
+    getCursor(x: number, y: number) {
+        return this.isOverTab(x, y) ? (this.isMouseTarget ? BristolCursor.grabbing : BristolCursor.grab) : BristolCursor.ewResize
+    }
+    get lineWidth() {
+        return this.isMouseOver ? 10 : 4
+    }
+    mouseExit(evt: RawPointerMoveData): void {
+        this.brist.cursor(BristolCursor.default)
+    }
+    mouseMoved(evt: RawPointerMoveData): boolean {
+        this.brist.cursor(this.getCursor(evt.position[0], evt.position[1]))
+        return true
+    }
+    isMouseOver: boolean;
+    currentTime: number
+
+
+    get tabHeight() {
+        return this.graph.footerHeight
+    }
+
+    static buildFrameForHandle(handle: UILineHandle): UIFrame_CornerWidthHeight { return null; }
+    shouldDragLock(event: RawPointerData | [start: RawPointerData, lastMove: RawPointerMoveData]): boolean {
+        return true
+    }
+
+    mouseDragged(evt: RawPointerMoveData): boolean {
+        this.isMouseTarget = true
+        this.currentTime -= this.graph.widthInTime * (evt.delta[0] / this.graph.getWidth())
+        return true;
+    }
+    onDragEnd(event: RawPointerData | RawPointerMoveData): boolean {
+        this.isMouseTarget = false
+        return true;
+    }
+    onDrawBackground(frame: UIFrameResult, deltaTime: number): void {
+        this.brist.strokeColor(fColor.amber.darken2)
+        this.brist.ctx.beginPath()
+        this.brist.line(frame.centerX, frame.top, frame.centerX, frame.bottom)
+        this.brist.strokeWeight(this.lineWidth)
+        this.brist.ctx.stroke()
+
+    }
+    onDrawForeground(frame: UIFrameResult, deltaTime: number): void {
+        this.brist.fillColor(fColor.amber.darken1)
+        this.brist.ctx.beginPath()
+        this.brist.roundedRect(frame.left, frame.bottom - this.tabHeight, frame.width, this.tabHeight, 8)
+        this.brist.ctx.fill()
     }
 
 }

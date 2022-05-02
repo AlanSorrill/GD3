@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "..\\BristolBoard"
+		}
+	],
+	"settings": {
+		"workbench.preferredLightColorTheme": "Default Dark+",
+		"workbench.preferredHighContrastColorTheme": "Default Dark+"
+	}
+}

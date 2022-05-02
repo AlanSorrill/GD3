@@ -20,3 +20,13 @@ font-style: normal; */
     font-size: 12px;
     text-transform: uppercase;
 }
+
+.squareChild:before {
+    content: '';
+    display: block;
+    padding-top: 100%;
+}
+
+.underlineHover:hover {
+    text-decoration: underline;
+}
