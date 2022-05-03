@@ -49,7 +49,7 @@ export const RonaTest = functions.https.onRequest(async (req, res) => {
   let data = await new WonderRequest().groupBy('Year').groupBy('AgeGroups').filterByYear(['1999', '2001']).request()
 
 
-  let exportPath = path.resolve(__dirname, '../data/exampleResponse.json');
+  let exportPath = path.resolve(__dirname, '../data/exampleResponse.xml');
   console.log(`saving to file${exportPath}`) 
   fs.writeFileSync(exportPath, JSON.stringify(data))
   console.log('saved')
@@ -93,6 +93,9 @@ console.log(`Fetch body: ${fetchBody}`)
   res.setHeader('Content-Type', 'application/xml')
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.send(resultText)
+})
+export const DataChannels = functions.https.onRequest(async (req,resp)=>{
+  
 })
 export const HashTypes = functions.https.onRequest(async (req, res) => {
   exec('openssl list -digest-algorithms', (err, stdout, stderr) => {

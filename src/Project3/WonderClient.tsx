@@ -1,5 +1,6 @@
+import { FColor } from "bristolboard";
 import { XmlToJson } from "../../srcFunctions/common/FBF_Helpers";
-import { RawWonder_Page, RawWonder_TableColumn, RawWonder_TableRow, WonderRequest } from "../../srcFunctions/common/WonderData";
+import { DataChannelStreaming, DataChannelStreaming_ID, RawWonder_Page, RawWonder_TableColumn, RawWonder_TableRow, WonderRequest } from "../../srcFunctions/common/WonderData";
 
 export class WonderClient {
     static async testRequest() {
@@ -14,4 +15,5 @@ export class WonderClient {
         let data = await this.testRequest()
        return WonderRequest.toTable(data)
     }
+   
 }

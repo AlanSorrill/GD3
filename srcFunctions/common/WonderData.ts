@@ -110,7 +110,7 @@ export enum WonderQueryParam_GroupBy {
   HispanicOrigin = "D76.V17",
   Race = "D76.V8",
 
-  //time
+  //timeThere 
   Year = "D76.V1-level1",
   Month = "D76.V1-level2",
   Weekday = "D76.V24",
@@ -119,11 +119,12 @@ export enum WonderQueryParam_GroupBy {
   PlaceofDeath = "D76.V21",
 
 
+  ICD10 = "D76.V2",
   LeadingCausesofDeath = "D76.V28",
   LeadingCausesofDeathInfants = "D76.V29",
   ICDChapter = "D76.V2-level1",
   ICDSubChapter = "D76.V2-level2",
-  CauseOfdeath = "D76.V2-level3",
+  CauseOfDeath = "D76.V2-level3",
   ICD10_113CauseList = "D76.V4",
   ICD10_130CauseListInfants = "D76.V12",
   InjuryIntent = "D76.V22",
@@ -332,16 +333,18 @@ export class WonderRequest {
     return this.addParam(`F_D76.V1`, years)
 
   }
-  groupBy(groupByName: (keyof typeof WonderQueryParam_GroupBy) | 'None') {
+  groupBy(groupByName: (keyof typeof WonderQueryParam_GroupBy) | 'None' | string) {
     if (this.groupByCount >= this.groupByCountLimit) {
       throw new Error(`Cannot group by more than ${this.groupByCountLimit}`)
     }
     let parameterName = `B_${this.groupByCount + 1}`
     if (isWQP_None(groupByName)) {
       this.addParam(parameterName, WonderQueryParam_Util.None);
-    } else {
+    } else if (WonderQueryParam_GroupBy[groupByName]) {
       let param = WonderQueryParam_GroupBy[groupByName]
       this.addParam(parameterName, param);
+    } else {
+      this.addParam(parameterName, groupByName)
     }
     this.groupByCount++;
     return this
@@ -486,7 +489,7 @@ export class WonderRequest {
 
   static toTable(data: RawWonder_Page): Clean_Wonder_Table {
     try {
-      console.log(data.response[0]['data-table'][0])
+      console.log(data)
     } catch (err) {
       try {
         console.log(data.message?.join('\n'))
@@ -716,6 +719,25 @@ export class Database {
     }
     return this.deathsByCause.get(causeName)
   }
+  async findIcdCodes() {
+    let csvResp = await fetch('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv')
+    let csv = await csvResp.text()
+    let lines: Array<[id: string, techName: string, laymanName: string]> = csv.split('\n').map(line => {
+      let parts: [section: string, item: string, junk: string, technicalLabel: string, junk: string, layman: string] = line.split(',') as any
+      return [`${parts[0]}.${parts[1]}`, parts[3], parts[5]]
+    })
+    console.log(lines)
+    return lines;
+  }
+  async pullIcdCodes() {
+    let codes = await this.findIcdCodes()
+    await codes.forEachAsync(async (code) => {
+      console.log(`Pulling data for ICD code ${code[0]}`,code)
+      let data = await new WonderRequest().groupBy('D76.V2-level3').groupBy('AgeGroups').groupBy('Month').addParam('F_D76.V2', code[0]).requestTable(true, true)
+      
+    })
+  }
+
   async pullCdcData() {
     let result = await fetch('https://data.cdc.gov/api/views/9bhg-hcku/rows.csv')
     let text = await result.text()
@@ -765,6 +787,7 @@ export class Database {
     window['lastCdc'] = output
 
   }
+
   async pullPopulation() {
     let ths = this;
     let population = await new WonderRequest().groupBy('Year').groupBy('AgeGroups').requestTable(true, true)
@@ -783,7 +806,7 @@ export class Database {
       for (let month = 1; month <= 12; month++) {
         let yearMonth: YearAndMonthString<any, any> = `${year}/${month <= 9 ? '0' + month : month}`
         console.log(`Pulling deaths in ${yearMonth}`)
-        let deaths = await new WonderRequest().groupBy('CauseOfdeath').groupBy('AgeGroups').groupBy('Month').filterByYear([yearMonth]).requestTable(true, true)
+        let deaths = await new WonderRequest().groupBy('CauseOfDeath').groupBy('AgeGroups').groupBy('Month').filterByYear([yearMonth]).requestTable(true, true)
         let count = 0
         deaths.rows.forEach((row: [causeOfDeath: string, tenYear: string, month: string, deaths: number, population: number, crudeRate: number | string], index) => {
           let time = new Date(row[2].isNumber() ? (row[2].includes('/') ? `${row[2].split('/')[0]} ${row[2].split('/')[1]} 1` : `${row[2]} 1 1`) : row[2]).getTime()
@@ -801,7 +824,21 @@ export class Database {
 
     return this.deathsByCause
   }
+  async buildDataChannel<DirectoryName extends string, ChannelName extends string>(id: DataChannelStreaming_ID<DirectoryName, ChannelName>, color: FColor, side: 'Client' | 'Server') {
+    if (side == 'Server') {
+      let out: DataChannelStreaming<DirectoryName, ChannelName> = new DataChannelStreaming(id, color, async (request) => {
+        let resp = await fetch(`http://${window.location.hostname}:5001/gdsn3-22/us-central1/DataChannels?id=${id}`)
+        return null
+      })
+    } else {
+      let out: DataChannelStreaming<DirectoryName, ChannelName> = new DataChannelStreaming(id, color, async (request) => {
+        let resp = await fetch(`http://${window.location.hostname}:5001/gdsn3-22/us-central1/DataChannels?id=${id}`)
+        return null
+      })
+    }
 
+
+  }
 }
 export interface DataChannel_JSON {
   title: string
@@ -856,8 +893,8 @@ export class DataChannel {
     }
   }
 }
-export type DataChannelStreaming_ID<DirectoryName extends string,ChannelName extends string> = `${DirectoryName}~${ChannelName}`
-export type DataChannelStreaming_Request = {channelId: DataChannelStreaming_ID<any,any>} & ({ time: -1, limit?: number } | {
+export type DataChannelStreaming_ID<DirectoryName extends string, ChannelName extends string> = `${DirectoryName}~${ChannelName}`
+export type DataChannelStreaming_Request = { channelId: DataChannelStreaming_ID<any, any> } & ({ time: -1, limit?: number } | {
   direction: 'before' | 'after'
   time: number
   limit?: number
@@ -870,14 +907,14 @@ export type DataChannelStreaming_Response = {
   data: Array<[number, number]>
 }
 export type DataChannel_Source = (request: DataChannelStreaming_Request) => Promise<DataChannelStreaming_Response>
-export class DataChannelStreaming<DirectoryName extends string,ChannelName extends string> extends DataChannel {
+export class DataChannelStreaming<DirectoryName extends string, ChannelName extends string> extends DataChannel {
   source: DataChannel_Source;
-  id: DataChannelStreaming_ID<any,any>
-  constructor(id: DataChannelStreaming_ID<any,any>, title: string, color: FColor, source: DataChannel_Source) {
-    super(title, color);
+  id: DataChannelStreaming_ID<DirectoryName, ChannelName>
+  constructor(id: DataChannelStreaming_ID<DirectoryName, ChannelName>, color: FColor, source: DataChannel_Source) {
+    super(id.split('~')[1], color);
     this.source = source;
     this.id = id;
-    this.tree = new BTree<number,number>
+    this.tree = new BTree<number, number>()
   }
   get hasValue() {
     return this.tree && this.tree.size > 0
@@ -885,32 +922,90 @@ export class DataChannelStreaming<DirectoryName extends string,ChannelName exten
   pullingForward: boolean = false
   pullingBackward: boolean = false
   pullingRoot: boolean = false
-  async pullBackwards() { }
-  async pullForwards() { }
-  async pullRoot() {
+
+  hasMoreBackwards: boolean = true
+  hasMoreForewards: boolean = true
+
+  async pullBackwards() {
+    if (this.pullingBackward || !this.hasMoreBackwards) {
+      return false;
+    }
+    let ths = this;
+    this.pullingBackward = true;
+    let time = ths.tree.minKey()
+    let backwardsResp = await this.source({
+      time: time, limit: 100,
+      channelId: this.id, direction: 'before'
+    })
+    if (backwardsResp.success) {
+      this.tree.setPairs(backwardsResp.data)
+      this.hasMoreBackwards = backwardsResp.hasMore
+      this.pullingBackward = false;
+      return;
+      // rootResp.
+    }
+    throw new Error(`Failed to pull backward from ${time}`)
+  }
+  async pullForwards() {
+    if (this.pullingForward || !this.hasMoreForewards) {
+      return false;
+    }
+    let ths = this;
+    this.pullingForward = true;
+    let time = ths.tree.minKey()
+    let forewardResp = await this.source({
+      time: time, limit: 100,
+      channelId: this.id, direction: 'after'
+    })
+    if (forewardResp.success) {
+      this.tree.setPairs(forewardResp.data)
+      this.hasMoreBackwards = forewardResp.hasMore
+      this.pullingForward = false;
+      return;
+      // rootResp.
+    }
+    throw new Error(`Failed to pull forward from ${time}`)
+  }
+  async pullRoot(time: number) {
     if (this.pullingRoot) {
       return false
     }
     this.pullingRoot = true;
     let rootResp = await this.source({
-      time: -1, limit: 100,
-      channelId: this.id
+      time: time, limit: 100,
+      channelId: this.id, direction: 'before'
     })
-    if(rootResp.success){
+    if (rootResp.success) {
+      this.tree.setPairs(rootResp.data)
+      this.pullingRoot = false;
+      return;
       // rootResp.
     }
-
+    throw new Error(`Failed to pull root from ${time}`)
   }
   forRange(start: number, end: number, onEach: (time: number, value: number, count: number) => void): void {
     let found = false
+    let ths = this;
     if (this.hasValue) {
+      let lastTime: number = -1
       super.forRange(start, end, (time, value, count) => {
         found = true;
+        lastTime = time;
+        switch (count) {
+          case 0:
+            console.log('found first value')
+            if (time > start) {
+              this.pullBackwards()
+            }
+        }
         onEach(time, value, count)
       })
+      if (lastTime != -1 && lastTime < end) {
+        ths.pullForwards()
+      }
     }
     if (!found) {
-      this.pullRoot()
+      this.pullRoot(end)
     }
     // super.forRange()
   }

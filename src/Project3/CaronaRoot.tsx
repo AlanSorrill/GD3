@@ -27,8 +27,8 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
         })
         let ths = this;
         //Promise.all([
-        database.pullPopulation(),
-            database.pullDeathsByCause()
+        // database.pullPopulation(),
+            // database.pullDeathsByCause()
 
 
 

@@ -11,6 +11,7 @@ declare global {
     interface Array<T> {
         mapOrDrop<N>(shouldKeep: (value: T, index: number) => (N | 'DROP')): N[]
         pushAll(stuff: T | T[]): void
+        forEachAsync(onEach: (item: T, index: number, ths: this) => Promise<void>): Promise<void>
     }
     interface Map<K, V> {
         keysAsArray(): K[]
@@ -20,12 +21,17 @@ declare global {
     interface BTree<K, V> {
 
     }
-    
+
 }
-Map.prototype.keysAsArray = function <K,V>() {
-    let ths = this as Map<K,V>
+Array.prototype.forEachAsync = async function <T>(onEach: (item: T, index: number, ths: Array<T>) => Promise<void>) {
+    for (let i = 0; i < this.length; i++) {
+        await onEach(this[i], i, this)
+    }
+}
+Map.prototype.keysAsArray = function <K, V>() {
+    let ths = this as Map<K, V>
     let out: K[] = []
-    for(let key of ths.keys()){
+    for (let key of ths.keys()) {
         out.push(key)
     }
     return out;
