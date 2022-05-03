@@ -57,7 +57,7 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
                 <div style={{ flexGrow: 3, display: 'flex' }}>
                     {/* <img src="./project3/NavSpinny.png" style={{height: '100%'}}/> */}
                     <div ref={ths.squareDiv} style={{ backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundImage: `url("./project3/NavSpinny.png")`, height: '100%', width: ths.squareDiv.current?.clientHeight || 0 }} />
-                    <DiseaseList defaultSelected={['Salmonella enteritis']} onChange={function (selected: [string, DataChannel][]) {
+                    <DiseaseList defaultSelected={['Influenza with pneumonia, influenza virus identified']} onChange={function (selected: [string, DataChannel][]) {
                         ths.setState({ diseases: selected })
                     }} />
                     <div style={{ flexGrow: 1 }} />
@@ -66,7 +66,7 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
             </div>
             {/* <div style={{backgroundColor: 'purple', width: 500, height: 500}}></div> */}
 
-            <LineGraph style={{ background: 'transparent', flexGrow: 3, padding: 64 }} sources={this.state.diseases.mapOrDrop(d => d[1]?.tree ? d[1] : 'DROP')} padding={0} />
+            <LineGraph style={{ background: 'transparent', flexGrow: 3 }} sources={this.state.diseases.mapOrDrop(d => d[1]?.tree ? d[1] : 'DROP')} padding={0} />
 
 
         </div >

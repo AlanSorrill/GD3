@@ -14,7 +14,7 @@ export function isWQP_None(param: string | WonderQueryParam_Util): param is (key
 }
 export type YearString = '1999' | '2000' | '2001' | '2002' | '2003' | '2004' | '2005' | '2006' | '2007' | '2008' | '2009' | '2010' | '2011' | '2012' | '2013' | '2014' | '2015' | '2016' | '2017' | '2018' | '2019' | '2020'
 export type MonthString = '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12'
-export enum MonthNames {Jan = 1, Feb=2,Mar=3,Apr=4,May=5,Jun=6,Jul=7,Aug=8,Sep=9,Oct=10,Nov=11,Dec=12}
+export enum MonthNames { Jan = 1, Feb = 2, Mar = 3, Apr = 4, May = 5, Jun = 6, Jul = 7, Aug = 8, Sep = 9, Oct = 10, Nov = 11, Dec = 12 }
 export type YearAndMonthString<year extends YearString, month extends MonthString> = `${year}/${month}`
 export function YearStrings(start: number = 1999, end: number = 2020): YearString[] {
   let out = []
@@ -669,6 +669,10 @@ export type RawRonaColumns = [DataAsOf: number, StartDate: number, EndDate: numb
 const RawRonaColumnsDefault: RawRonaColumns = [0, 0, 0, '', 0, 0, '', '', '', 0, 0, 0, 0, 0, 0, '']
 export type AgeGroup = '< 1 year' | '1-4 years' | '5-14 years' | '15-24 years' | '25-34 years' | '35-44 years' | '45-54 years' | '55-64 years' | '65-74 years' | '75-84 years' | '85+ years' | 'Not Stated'
 
+export interface Database_Json {
+  deathsByCause: { [key: string]: DataChannel_JSON }
+  populationByAge: { [key: string]: DataChannel_JSON }
+}
 export class Database {
   deathsByCause: Map<string, DataChannel> = new Map()
   populationByAge: Map<AgeGroup, DataChannel> = new Map()
@@ -799,7 +803,11 @@ export class Database {
   }
 
 }
-
+export interface DataChannel_JSON {
+  title: string
+  color: string
+  data: Array<[number, number]>
+}
 export class DataChannel {
   title: string
   color: FColor
@@ -824,14 +832,86 @@ export class DataChannel {
       return;
     }
     let startNode = this.tree.getPairOrNextLower(start)
-    if(!startNode){
+    if (!startNode) {
       startNode = this.tree.getPairOrNextHigher(start)
     }
     let endNode = this.tree.getPairOrNextHigher(end)
-    if(!endNode){
+    if (!endNode) {
       endNode = this.tree.getPairOrNextLower(end)
     }
-    
+
     this.tree.forRange(startNode[0], endNode[0], true, onEach)
+  }
+  static fromJson(json: DataChannel_JSON) {
+    let out = new DataChannel(json.title, FColor.fromHex(json.color, '', ''))
+    out.tree.setPairs(json.data)
+    return out;
+  }
+  toJson(): DataChannel_JSON {
+    let data = this.tree.toArray()
+    return {
+      title: this.title,
+      color: this.color.toHexString(),
+      data: data
+    }
+  }
+}
+export type DataChannelStreaming_ID<DirectoryName extends string,ChannelName extends string> = `${DirectoryName}~${ChannelName}`
+export type DataChannelStreaming_Request = {channelId: DataChannelStreaming_ID<any,any>} & ({ time: -1, limit?: number } | {
+  direction: 'before' | 'after'
+  time: number
+  limit?: number
+})
+export type DataChannelStreaming_Response = {
+  success: false
+} | {
+  success: true
+  hasMore: boolean
+  data: Array<[number, number]>
+}
+export type DataChannel_Source = (request: DataChannelStreaming_Request) => Promise<DataChannelStreaming_Response>
+export class DataChannelStreaming<DirectoryName extends string,ChannelName extends string> extends DataChannel {
+  source: DataChannel_Source;
+  id: DataChannelStreaming_ID<any,any>
+  constructor(id: DataChannelStreaming_ID<any,any>, title: string, color: FColor, source: DataChannel_Source) {
+    super(title, color);
+    this.source = source;
+    this.id = id;
+    this.tree = new BTree<number,number>
+  }
+  get hasValue() {
+    return this.tree && this.tree.size > 0
+  }
+  pullingForward: boolean = false
+  pullingBackward: boolean = false
+  pullingRoot: boolean = false
+  async pullBackwards() { }
+  async pullForwards() { }
+  async pullRoot() {
+    if (this.pullingRoot) {
+      return false
+    }
+    this.pullingRoot = true;
+    let rootResp = await this.source({
+      time: -1, limit: 100,
+      channelId: this.id
+    })
+    if(rootResp.success){
+      // rootResp.
+    }
+
+  }
+  forRange(start: number, end: number, onEach: (time: number, value: number, count: number) => void): void {
+    let found = false
+    if (this.hasValue) {
+      super.forRange(start, end, (time, value, count) => {
+        found = true;
+        onEach(time, value, count)
+      })
+    }
+    if (!found) {
+      this.pullRoot()
+    }
+    // super.forRange()
   }
 }

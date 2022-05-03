@@ -126,7 +126,7 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         if (this.brist.isKeyPressed(SpecialKey.Control)) {
             // amount = this.heightInValue * amount 
             console.log(this.lineArea.lineHeight(EnglishNumbers.Thousand), this.lineArea.lineHeight(EnglishNumbers.Million))
-            let spot = evt.position[1].alphaInRange(this.frame.topY(), this.frame.bottomY())
+            let spot = this.minValue == 0 ? 1 : evt.position[1].alphaInRange(this.frame.topY(), this.frame.bottomY())
             this.minValue -= amount / 2 * spot.oneMinus() * this.heightInValue
             this.maxValue += amount / 2 * spot * this.heightInValue
             this.minValue = Math.max(this.minValue, 0)
@@ -183,7 +183,7 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         let ths = this;
         let unitWidth = () => (ths.timeToX(b.getTime()) - ths.timeToX(a.getTime()))
         while (unitWidth() < textWidth) {
-            console.log(`xaxis`,[unitWidth(),textWidth])
+            // console.log(`xaxis`,[unitWidth(),textWidth])
             if (b.getMonth() < 12) {
                 b.setMonth(b.getMonth() + 1)
             } else {
@@ -191,7 +191,7 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
                 b.setFullYear(b.getFullYear() + 1)
             }
         }
-        console.log(`xaxis`,[unitWidth(),textWidth])
+        // console.log(`xaxis`,[unitWidth(),textWidth])
         let deltaYears = b.getFullYear() - a.getFullYear()
         return b.getMonth() - (deltaYears > 0 ? 0 : a.getMonth()) + 12*deltaYears
     }
@@ -214,7 +214,7 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         let units = this.getXUnits()
         let textPadding = 16
         // let textWidth = this.brist.ctx.measureText(`${units}   `).width
-             console.log('xaxis', units)
+            //  console.log('xaxis', units)
         // console.log('xaxis-----------------------------')
         while (d.getTime() <= this.endTime) {
             // console.log(`XAXIS`,d.getMonth())
