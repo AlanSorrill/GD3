@@ -452,10 +452,11 @@ export class WonderRequest {
       return `<parameter><name>${param[0]}</name>${param[1].length > 0 ? param[1].map(str => `<value>${str}</value>`).join('') : '<value />'}</parameter>`
     }).join('')
   }
-  async requestTable(setDefaults: boolean = true, clientSide: boolean = false): Promise<Clean_Wonder_Table> {
-    return WonderRequest.toTable(await this.request(setDefaults, clientSide));
+  async requestTable(setDefaults: boolean = true): Promise<Clean_Wonder_Table> {
+    return WonderRequest.toTable(await this.request(setDefaults));
   }
-  async request(setDefaults: boolean = true, clientSide: boolean = false): Promise<RawWonder_Page> {
+  async request(setDefaults: boolean = true): Promise<RawWonder_Page> {
+    let clientSide: boolean = typeof window != 'undefined'
     if (!this.params.has('B_1')) {
       throw new Error(`Please group by at least one property`)
     }
@@ -499,6 +500,15 @@ export class WonderRequest {
       }
       return null;
     }
+    if (!data.response) {
+      try {
+        console.log(data.message?.join('\n'))
+
+      } catch (errr) {
+        console.log(`Bad response`, data);
+      }
+      return null;
+    }
     let byCodes = flatten(data.response[0].request[0].byvariables.map((v) => v.variable.map((vv) => vv.$.code)))
     console.log('By codes', byCodes)
     let measureCodes = data.response[0]['measure-selections'][0].measure.map((m) => m.$.code)
@@ -510,6 +520,8 @@ export class WonderRequest {
     let repeatedColumns: Array<[count: number, value: (string | number), index: number]> = []
     let columnsToRepeat: Map<number, string | number> = new Map()
     let rows = []
+    let totals = []
+    let maximums = []
     data.response[0]['data-table'][0].r.forEach((row: RawWonder_TableRow) => {
       let column = []
       columnsToRepeat.clear()
@@ -536,9 +548,25 @@ export class WonderRequest {
         column.push(val)
 
       })
+      while (totals.length < column.length) {
+        totals.push(0)
+      }
+      while (maximums.length < column.length) {
+        maximums.push(-1)
+      }
+      for (let i = 0; i < column.length; i++) {
+        if (typeof column[i] == 'number') {
+          if (maximums[i] == -1 || column[i] > maximums[i] || Number.isNaN(maximums[i])) {
+            maximums[i] = column[i]
+          }
+          totals[i] += column[i]
+        } else {
+          totals[i] = -1
+        }
+      }
       rows.push(column)
     })
-    let output = { columnCodes: columnCodes, columnNames: columnCodes.map((code) => DeWonder(code)), rows: rows }
+    let output: Clean_Wonder_Table = { rowTotals: totals, rowMaximums: maximums, columnCodes: columnCodes, columnNames: columnCodes.map((code) => DeWonder(code)), rows: rows }
     console.log(output)
     return output;
   }
@@ -615,6 +643,8 @@ export const ExampleRequest = '<request-parameters><parameter><name>B_1</name><v
 export interface Clean_Wonder_Table {
   columnNames: string[]
   columnCodes: string[]
+  rowTotals: Array<number>
+  rowMaximums: Array<number>
   rows: Array<(string | number)>[]
 }
 export interface RawWonder_Response {
@@ -672,15 +702,44 @@ export type RawRonaColumns = [DataAsOf: number, StartDate: number, EndDate: numb
 const RawRonaColumnsDefault: RawRonaColumns = [0, 0, 0, '', 0, 0, '', '', '', 0, 0, 0, 0, 0, 0, '']
 export type AgeGroup = '< 1 year' | '1-4 years' | '5-14 years' | '15-24 years' | '25-34 years' | '35-44 years' | '45-54 years' | '55-64 years' | '65-74 years' | '75-84 years' | '85+ years' | 'Not Stated'
 
+
+export interface DiseaseDescription {
+  icdCode: string,
+  technicalName: string,
+  laymanName: string,
+  maxPerMonth: number,
+  data?: DataChannel_JSON
+}
+
 export interface Database_Json {
   deathsByCause: { [key: string]: DataChannel_JSON }
   populationByAge: { [key: string]: DataChannel_JSON }
 }
+export interface FileAccessor {
+  readFile<T>(path: string): Promise<T | { error: string }>
+  writeFile<T>(path: string, data: T | string): Promise<'success' | string>
+}
+
 export class Database {
   deathsByCause: Map<string, DataChannel> = new Map()
   populationByAge: Map<AgeGroup, DataChannel> = new Map()
-  constructor() {
+  fileAccessor: FileAccessor = null;
+  constructor(fileAccessor: FileAccessor = null) {
+    this.fileAccessor = fileAccessor
+    if (fileAccessor) {
+      let ths = this;
+      fileAccessor.readFile<DiseaseDescription[]>(this.diseaseDirectoryPath).then(data => {
 
+        if (Array.isArray(data)) {
+          for (let description of data) {
+            ths.diseaseDirectory.set(description.icdCode, description)
+          }
+        } else {
+          console.log(`Failed to read file`, data)
+        }
+
+      })
+    }
   }
   private getColorForAgeGroup(ageGroup: AgeGroup): FColor {
     switch (ageGroup) {
@@ -723,21 +782,59 @@ export class Database {
     let csvResp = await fetch('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv')
     let csv = await csvResp.text()
     let lines: Array<[id: string, techName: string, laymanName: string]> = csv.split('\n').map(line => {
-      let parts: [section: string, item: string, junk: string, technicalLabel: string, junk: string, layman: string] = line.split(',') as any
-      return [`${parts[0]}.${parts[1]}`, parts[3], parts[5]]
+      line = line.replaceAll(`"`, '')
+      let parts: [section: string, item: string, junk: string, technicalLabel: string, junk: string, junk: string, junk: string, layman: string] = line.split(',') as any
+
+      // 0: "A00"section
+      // 1: "0"item
+      // 2: "A000"junk
+      // 3: "\"Cholera due to Vibrio cholerae 01"technicalLabel
+      // 4: " biovar cholerae\""junk
+      // 5: "\"Cholera due to Vibrio cholerae 01"junk
+      // 6: " biovar cholerae\""
+      // 7: "\"Cholera\""
+      return [parts[1] && parts[1].isNumber() ? `${parts[0]}.${parts[1]}` : parts[0], parts[3], parts[parts.length - 1]]
     })
     console.log(lines)
     return lines;
   }
-  async pullIcdCodes() {
-    let codes = await this.findIcdCodes()
-    await codes.forEachAsync(async (code) => {
-      console.log(`Pulling data for ICD code ${code[0]}`,code)
-      let data = await new WonderRequest().groupBy('D76.V2-level3').groupBy('AgeGroups').groupBy('Month').addParam('F_D76.V2', code[0]).requestTable(true, true)
-      
-    })
-  }
 
+  async pullIcdCodes(max: number = -1) {
+    let codes = await this.findIcdCodes()
+    let ths = this;
+    await codes.forEachAsync(async (code, index) => {
+      if (ths.diseaseDirectory.has(code[0])) {
+        if (max != -1) {
+          max++
+        }
+      } else {
+        if (max != -1 && index >= max) {
+          return 'BREAK'
+        }
+        console.log(`${max != -1 ? (max - index) + ' ' : ''}Pulling data for ICD code ${code[0]}`, code)
+        try {
+          let data = await new WonderRequest().groupBy('AgeGroups').groupBy('Month').addParam('F_D76.V2', code[0]).requestTable(true)
+          if (data != null) {
+            ths.diseaseDirectory.set(code[0], { laymanName: code[2], technicalName: code[1], icdCode: code[0], maxPerMonth: data.rowMaximums[2] })
+          } else {
+            if (max != -1) {
+              max++
+            }
+          }
+        } catch (err) {
+          console.log(`Failed to pull ${code[0]}`,err)
+        }
+      }
+    })
+    let output = this.diseaseDirectory.toArrayWithKeys().sort((a, b) => b[1].maxPerMonth - a[1].maxPerMonth).map(s => s[1])
+    console.log(output)
+    if (this.fileAccessor) {
+      this.fileAccessor.writeFile(this.diseaseDirectoryPath, output)
+    }
+    return output
+  }
+  diseaseDirectoryPath: string = './directory.json'
+  diseaseDirectory: Map<string, DiseaseDescription> = new Map()
   async pullCdcData() {
     let result = await fetch('https://data.cdc.gov/api/views/9bhg-hcku/rows.csv')
     let text = await result.text()
@@ -790,7 +887,7 @@ export class Database {
 
   async pullPopulation() {
     let ths = this;
-    let population = await new WonderRequest().groupBy('Year').groupBy('AgeGroups').requestTable(true, true)
+    let population = await new WonderRequest().groupBy('Year').groupBy('AgeGroups').requestTable(true)
 
     population.rows.forEach((row: [year: string, ageGroup: string, deaths: number, population: number, crudeRate: number | string]) => {
       let time = new Date(row[0].isNumber() ? `${row[0]} 1 1` : row[0]).getTime()
@@ -806,7 +903,7 @@ export class Database {
       for (let month = 1; month <= 12; month++) {
         let yearMonth: YearAndMonthString<any, any> = `${year}/${month <= 9 ? '0' + month : month}`
         console.log(`Pulling deaths in ${yearMonth}`)
-        let deaths = await new WonderRequest().groupBy('CauseOfDeath').groupBy('AgeGroups').groupBy('Month').filterByYear([yearMonth]).requestTable(true, true)
+        let deaths = await new WonderRequest().groupBy('CauseOfDeath').groupBy('AgeGroups').groupBy('Month').filterByYear([yearMonth]).requestTable(true)
         let count = 0
         deaths.rows.forEach((row: [causeOfDeath: string, tenYear: string, month: string, deaths: number, population: number, crudeRate: number | string], index) => {
           let time = new Date(row[2].isNumber() ? (row[2].includes('/') ? `${row[2].split('/')[0]} ${row[2].split('/')[1]} 1` : `${row[2]} 1 1`) : row[2]).getTime()

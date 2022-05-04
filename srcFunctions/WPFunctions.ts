@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import * as fs from 'fs'
 import * as path from 'path'
 import './common/FBF_Helpers'
-import { DeWonder, ExampleRequest, WonderQueryParam_Util, WonderRequest } from './common/WonderData'
+import { Database, DeWonder, ExampleRequest, WonderQueryParam_Util, WonderRequest } from './common/WonderData'
 import { exec } from 'child_process'
 import * as crypto from 'crypto'
 
@@ -12,6 +12,22 @@ import * as crypto from 'crypto'
 // // https://firebase.google.com/docs/functions/typescript
 //
 console.log('test')
+
+let database = new Database({
+  async readFile<T>(filePath) {
+    let absPath = path.resolve(__dirname, `../data/`, filePath);
+    if (!fs.existsSync(absPath)) {
+      return { error: `File doesn't exist: ${absPath}` }
+    }
+    let data = await fs.promises.readFile(absPath)
+    return JSON.parse(data.toString()) 
+  },
+  async writeFile<T>(filePath: string, data: string | T) {
+    let absPath = path.resolve(__dirname, `../data/`, filePath);
+   await fs.promises.writeFile(absPath, typeof data == 'string' ? data : JSON.stringify(data))
+    return 'success';
+  },
+})
 
 export const listener = functions.https.onRequest(async (req, res) => {
   res.setHeader('Content-Type', 'application/xml')
@@ -50,7 +66,7 @@ export const RonaTest = functions.https.onRequest(async (req, res) => {
 
 
   let exportPath = path.resolve(__dirname, '../data/exampleResponse.xml');
-  console.log(`saving to file${exportPath}`) 
+  console.log(`saving to file${exportPath}`)
   fs.writeFileSync(exportPath, JSON.stringify(data))
   console.log('saved')
   res.setHeader('Content-Type', 'application/json')
@@ -59,20 +75,20 @@ export const RonaTest = functions.https.onRequest(async (req, res) => {
 })
 
 function requestToFileName(fetchBody: string) {
-  
+
   console.log(`Req to file name\n${fetchBody}`)
   return crypto.createHash('md5').update(fetchBody).digest("hex");
 }
 export const WonderProxy = functions.https.onRequest(async (req, res) => {
   let fetchBody = req.body['request_xml']
-console.log(`Fetch body: ${fetchBody}`)
+  console.log(`Fetch body: ${fetchBody}`)
   let fileName = requestToFileName(fetchBody)
   let exportPath = path.resolve(__dirname, `../data/${fileName}.xml`);
-  if(fs.existsSync(exportPath)){
+  if (fs.existsSync(exportPath)) {
     console.log(`Using cache for request ${fileName}`)
     res.setHeader('Content-Type', 'application/xml')
     res.setHeader('Access-Control-Allow-Origin', '*')
-    
+
     res.sendFile(exportPath)
     return;
   }
@@ -83,26 +99,30 @@ console.log(`Fetch body: ${fetchBody}`)
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/xml' },
     // mode: 'no-cors'
   })
-  
+
   let resultText = await result.text();
 
 
   console.log(`saving to file: ${exportPath}`)
   fs.writeFileSync(exportPath, resultText)
-  
+
   res.setHeader('Content-Type', 'application/xml')
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.send(resultText)
 })
-export const DataChannels = functions.https.onRequest(async (req,resp)=>{
+export const Diseases = functions.https.onRequest(async (req, resp) => {
+  let codes = await database.pullIcdCodes(10)
+  resp.setHeader('Content-Type', 'application/json')
+  resp.setHeader('Access-Control-Allow-Origin', '*')
   
+  resp.send(JSON.stringify(codes))
 })
 export const HashTypes = functions.https.onRequest(async (req, res) => {
   exec('openssl list -digest-algorithms', (err, stdout, stderr) => {
     if (err) {
       console.log('err', err)
       res.send(JSON.stringify({ status: 'Error', error: err }))
-      return;
+      return; 
     }
     if (stderr) {
       console.log('stderr', stderr)

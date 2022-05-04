@@ -11,7 +11,7 @@ declare global {
     interface Array<T> {
         mapOrDrop<N>(shouldKeep: (value: T, index: number) => (N | 'DROP')): N[]
         pushAll(stuff: T | T[]): void
-        forEachAsync(onEach: (item: T, index: number, ths: this) => Promise<void>): Promise<void>
+        forEachAsync(onEach: (item: T, index: number, ths: this) => Promise<void | 'BREAK'>): Promise<void>
     }
     interface Map<K, V> {
         keysAsArray(): K[]
@@ -23,9 +23,11 @@ declare global {
     }
 
 }
-Array.prototype.forEachAsync = async function <T>(onEach: (item: T, index: number, ths: Array<T>) => Promise<void>) {
+Array.prototype.forEachAsync = async function <T>(onEach: (item: T, index: number, ths: Array<T>) => Promise<void | 'BREAK'>) {
     for (let i = 0; i < this.length; i++) {
-        await onEach(this[i], i, this)
+        if(await onEach(this[i], i, this) == 'BREAK'){
+            break;
+        }
     }
 }
 Map.prototype.keysAsArray = function <K, V>() {
