@@ -70,7 +70,7 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
 
 
         </div >
-    }
+    } 
 
 }
 export interface DiseaseList_Props {

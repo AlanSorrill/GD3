@@ -23,6 +23,12 @@ declare global {
     }
 
 }
+export function isNode(){
+    return typeof window == 'undefined'
+}
+// export function ObjectMap<A,B>(input: A, transform: <k extends keyof A>()=>B): B {
+// return null
+// }
 Array.prototype.forEachAsync = async function <T>(onEach: (item: T, index: number, ths: Array<T>) => Promise<void | 'BREAK'>) {
     for (let i = 0; i < this.length; i++) {
         if(await onEach(this[i], i, this) == 'BREAK'){

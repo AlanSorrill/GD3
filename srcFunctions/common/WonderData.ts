@@ -5,7 +5,7 @@ if (true) {
 }
 import { FColor } from 'bristolboard';
 import BTree from 'sorted-btree';
-import { concactinate, flatten, isAllTrue as isAnyTrue, replaceAllInString, XmlToJson } from './FBF_Helpers';
+import { concactinate, flatten, isAllTrue as isAnyTrue, isNode, replaceAllInString, XmlToJson } from './FBF_Helpers';
 
 
 // export type WonderQueryParamName = (keyof typeof WonderQueryParam) 
@@ -452,8 +452,8 @@ export class WonderRequest {
       return `<parameter><name>${param[0]}</name>${param[1].length > 0 ? param[1].map(str => `<value>${str}</value>`).join('') : '<value />'}</parameter>`
     }).join('')
   }
-  async requestTable(setDefaults: boolean = true): Promise<Clean_Wonder_Table> {
-    return WonderRequest.toTable(await this.request(setDefaults));
+  async requestTable<RowType extends (string | number)[]>(setDefaults: boolean = true): Promise<Clean_Wonder_Table<RowType>> {
+    return WonderRequest.toTable<RowType>(await this.request(setDefaults));
   }
   async request(setDefaults: boolean = true): Promise<RawWonder_Page> {
     let clientSide: boolean = typeof window != 'undefined'
@@ -477,7 +477,7 @@ export class WonderRequest {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/xml' },
       // mode: 'no-cors'
     })
-    console.log(result.status + " " + result.statusText)
+    // console.log(result.status + " " + result.statusText)
     let textResult = await result.text()
     // console.log(textResult);
     // let jsonValue = await XMLParser.parseStringPromise(textResult, {})
@@ -488,7 +488,7 @@ export class WonderRequest {
     return json.page[0]
   }
 
-  static toTable(data: RawWonder_Page): Clean_Wonder_Table {
+  static toTable<RowType extends (string | number)[]>(data: RawWonder_Page): Clean_Wonder_Table<RowType> {
     try {
       console.log(data)
     } catch (err) {
@@ -519,11 +519,11 @@ export class WonderRequest {
     console.log('Column Codes', measureCodes.map((c) => DeWonder(c)))
     let repeatedColumns: Array<[count: number, value: (string | number), index: number]> = []
     let columnsToRepeat: Map<number, string | number> = new Map()
-    let rows = []
+    let rows: RowType[] = []
     let totals = []
     let maximums = []
     data.response[0]['data-table'][0].r.forEach((row: RawWonder_TableRow) => {
-      let column = []
+      let column: RowType = [] as any
       columnsToRepeat.clear()
       for (let i = 0; i < repeatedColumns.length; i++) {
 
@@ -566,7 +566,7 @@ export class WonderRequest {
       }
       rows.push(column)
     })
-    let output: Clean_Wonder_Table = { rowTotals: totals, rowMaximums: maximums, columnCodes: columnCodes, columnNames: columnCodes.map((code) => DeWonder(code)), rows: rows }
+    let output: Clean_Wonder_Table<RowType> = { rowTotals: totals, rowMaximums: maximums, columnCodes: columnCodes, columnNames: columnCodes.map((code) => DeWonder(code)), rows: rows }
     console.log(output)
     return output;
   }
@@ -640,12 +640,12 @@ export class ConsumableLinkedList<T> {
 
 export const ExampleRequest = '<request-parameters><parameter><name>B_1</name><value>D76.V1-level1</value></parameter><parameter><name>B_2</name><value>D76.V8</value></parameter><parameter><name>B_3</name><value>*None*</value></parameter><parameter><name>B_4</name><value>*None*</value></parameter><parameter><name>B_5</name><value>*None*</value></parameter><parameter><name>F_D76.V1</name><value>1999</value><value>2000</value><value>2001</value><value>2002</value><value>2003</value><value>2004</value><value>2005</value><value>2006</value><value>2007</value><value>2008</value><value>2009</value><value>2010</value><value>2011</value><value>2012</value><value>2013</value></parameter><parameter><name>F_D76.V10</name><value>*All*</value></parameter><parameter><name>F_D76.V2</name><value>C00-D48</value></parameter><parameter><name>F_D76.V25</name><value>*All*</value></parameter><parameter><name>F_D76.V27</name><value>*All*</value></parameter><parameter><name>F_D76.V9</name><value>*All*</value></parameter><parameter><name>I_D76.V1</name><value>1999 (1999) 2000 (2000) 2001 (2001) 2002 (2002) 2003 (2003) 2004 (2004) 2005 (2005) 2006 (2006) 2007 (2007) 2008 (2008) 2009 (2009) 2010 (2010) 2011 (2011) 2012 (2012) 2013 (2013) </value></parameter><parameter><name>I_D76.V10</name><value>*All* (The United States) </value></parameter><parameter><name>I_D76.V2</name><value>C00-D48 (Neoplasms) </value></parameter><parameter><name>I_D76.V25</name><value>All Causes of Death </value></parameter><parameter><name>I_D76.V27</name><value>*All* (The United States) </value></parameter><parameter><name>I_D76.V9</name><value>*All* (The United States) </value></parameter><parameter><name>M_1</name><value>D76.M1</value></parameter><parameter><name>M_2</name><value>D76.M2</value></parameter><parameter><name>M_3</name><value>D76.M3</value></parameter><parameter><name>M_9</name><value>D76.M9</value></parameter><parameter><name>O_V10_fmode</name><value>freg</value></parameter><parameter><name>O_V1_fmode</name><value>freg</value></parameter><parameter><name>O_V25_fmode</name><value>freg</value></parameter><parameter><name>O_V27_fmode</name><value>freg</value></parameter><parameter><name>O_V2_fmode</name><value>freg</value></parameter><parameter><name>O_V9_fmode</name><value>freg</value></parameter><parameter><name>O_aar</name><value>aar_std</value></parameter><parameter><name>O_aar_CI</name><value>true</value></parameter><parameter><name>O_aar_SE</name><value>true</value></parameter><parameter><name>O_aar_enable</name><value>true</value></parameter><parameter><name>O_aar_pop</name><value>0000</value></parameter><parameter><name>O_age</name><value>D76.V5</value></parameter><parameter><name>O_javascript</name><value>on</value></parameter><parameter><name>O_location</name><value>D76.V9</value></parameter><parameter><name>O_oc-sect1-request</name><value>close</value></parameter><parameter><name>O_precision</name><value>1</value></parameter><parameter><name>O_rate_per</name><value>100000</value></parameter><parameter><name>O_show_suppressed</name><value>true</value></parameter><parameter><name>O_show_totals</name><value>true</value></parameter><parameter><name>O_show_zeros</name><value>true</value></parameter><parameter><name>O_timeout</name><value>600</value></parameter><parameter><name>O_title</name><value>Example1</value></parameter><parameter><name>O_ucd</name><value>D76.V2</value></parameter><parameter><name>O_urban</name><value>D76.V19</value></parameter><parameter><name>VM_D76.M6_D76.V10</name><value/></parameter><parameter><name>VM_D76.M6_D76.V17</name><value>*All*</value></parameter><parameter><name>VM_D76.M6_D76.V1_S</name><value>*All*</value></parameter><parameter><name>VM_D76.M6_D76.V7</name><value>*All*</value></parameter><parameter><name>VM_D76.M6_D76.V8</name><value>*All*</value></parameter><parameter><name>V_D76.V1</name><value/></parameter><parameter><name>V_D76.V10</name><value/></parameter><parameter><name>V_D76.V11</name><value>*All*</value></parameter><parameter><name>V_D76.V12</name><value>*All*</value></parameter><parameter><name>V_D76.V17</name><value>*All*</value></parameter><parameter><name>V_D76.V19</name><value>*All*</value></parameter><parameter><name>V_D76.V2</name><value/></parameter><parameter><name>V_D76.V20</name><value>*All*</value></parameter><parameter><name>V_D76.V21</name><value>*All*</value></parameter><parameter><name>V_D76.V22</name><value>*All*</value></parameter><parameter><name>V_D76.V23</name><value>*All*</value></parameter><parameter><name>V_D76.V24</name><value>*All*</value></parameter><parameter><name>V_D76.V25</name><value/></parameter><parameter><name>V_D76.V27</name><value/></parameter><parameter><name>V_D76.V4</name><value>*All*</value></parameter><parameter><name>V_D76.V5</name><value>*All*</value></parameter><parameter><name>V_D76.V51</name><value>*All*</value></parameter><parameter><name>V_D76.V52</name><value>*All*</value></parameter><parameter><name>V_D76.V6</name><value>00</value></parameter><parameter><name>V_D76.V7</name><value>*All*</value></parameter><parameter><name>V_D76.V8</name><value>*All*</value></parameter><parameter><name>V_D76.V9</name><value/></parameter><parameter><name>action-Send</name><value>Send</value></parameter><parameter><name>dataset_code</name><value>D76</value></parameter><parameter><name>dataset_label</name><value>Underlying Cause of Death, 1999-2016</value></parameter><parameter><name>dataset_vintage</name><value>2016</value></parameter><parameter><name>finder-stage-D76.V1</name><value>codeset</value></parameter><parameter><name>finder-stage-D76.V10</name><value>codeset</value></parameter><parameter><name>finder-stage-D76.V2</name><value>codeset</value></parameter><parameter><name>finder-stage-D76.V25</name><value>codeset</value></parameter><parameter><name>finder-stage-D76.V27</name><value>codeset</value></parameter><parameter><name>finder-stage-D76.V9</name><value>codeset</value></parameter><parameter><name>saved_id</name><value/></parameter><parameter><name>stage</name><value>request</value></parameter></request-parameters>'
 
-export interface Clean_Wonder_Table {
+export interface Clean_Wonder_Table<RowType extends (string | number)[]> {
   columnNames: string[]
   columnCodes: string[]
   rowTotals: Array<number>
   rowMaximums: Array<number>
-  rows: Array<(string | number)>[]
+  rows: RowType[]
 }
 export interface RawWonder_Response {
   caveats: any[]
@@ -707,8 +707,7 @@ export interface DiseaseDescription {
   icdCode: string,
   technicalName: string,
   laymanName: string,
-  maxPerMonth: number,
-  data?: DataChannel_JSON
+  maxPerMonth: number
 }
 
 export interface Database_Json {
@@ -718,12 +717,19 @@ export interface Database_Json {
 export interface FileAccessor {
   readFile<T>(path: string): Promise<T | { error: string }>
   writeFile<T>(path: string, data: T | string): Promise<'success' | string>
+  exists(path: string): Promise<boolean>
 }
-
+export type AgeGroupDataChannels = { [Prop in AgeGroup as `${Prop & string}`]: DataChannel }
+export type AgeGroupDataChannels_JSON = { [Prop in AgeGroup as `${Prop & string}`]: DataChannel_JSON }
+export type DiseaseData_JSON = {
+  description: DiseaseDescription,
+  byAge: AgeGroupDataChannels_JSON
+}
 export class Database {
   deathsByCause: Map<string, DataChannel> = new Map()
   populationByAge: Map<AgeGroup, DataChannel> = new Map()
   fileAccessor: FileAccessor = null;
+  arrested: boolean = false
   constructor(fileAccessor: FileAccessor = null) {
     this.fileAccessor = fileAccessor
     if (fileAccessor) {
@@ -739,6 +745,8 @@ export class Database {
         }
 
       })
+    } else if (!isNode()) {
+
     }
   }
   private getColorForAgeGroup(ageGroup: AgeGroup): FColor {
@@ -753,6 +761,7 @@ export class Database {
         return fColor.blue.base
     }
   }
+
   private updateListeners: Map<number, () => void> = new Map()
   private updateListenerCount = 0
   addListener(onUpdate: () => void) {
@@ -776,8 +785,32 @@ export class Database {
     if (!this.deathsByCause.has(causeName)) {
       this.deathsByCause.set(causeName, new DataChannel(`DeathsForCause${causeName}`))
     }
+
     return this.deathsByCause.get(causeName)
   }
+  async getDeathsForICD(icdCode: string) {
+    if (this.deathsByICD.has(icdCode)) {
+      return this.deathsByICD.get(icdCode)
+    }
+
+    if (this.diseaseDirectory.has(icdCode)) {
+      if (this.fileAccessor) {
+        let filePath = this.diseasePath(icdCode)
+        if (await this.fileAccessor.exists(filePath)) {
+          let fileResult = await this.fileAccessor.readFile(filePath)
+          console.log(`Got disease from file`, filePath)
+          if(fileResult != null){
+            return fileResult
+          }else{
+            console.log(`Couldn't read ICD file ${filePath}`)
+          }
+        }
+      }
+      let result = await this.pullIcdCode(this.diseaseDirectory.get(icdCode))
+      return result
+    }
+  }
+
   async findIcdCodes() {
     let csvResp = await fetch('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv')
     let csv = await csvResp.text()
@@ -798,10 +831,51 @@ export class Database {
     console.log(lines)
     return lines;
   }
+  async pullIcdCode(description: DiseaseDescription) {
+    let ths = this;
+    try {
+      let data = await new WonderRequest().groupBy('AgeGroups').groupBy('Month').addParam('F_D76.V2', description.icdCode).requestTable<[ageGroup: AgeGroup, time: string, deaths: number, junk: number, junk: number]>(true)
+      if (data != null) {
 
+        let out: AgeGroupDataChannels = {} as any;
+        let current = Date.now();
+        let last = Date.now();
+        let count = 0;
+        description.maxPerMonth = Math.max(description.maxPerMonth, data.rowMaximums[2])
+        for (let row of data.rows) {
+          if (typeof out[row[0]] == 'undefined') {
+            out[row[0]] = new DataChannel(description.laymanName + ' ' + row[0], null)
+          }
+          let time = new Date(row[1].isNumber() ? (row[1].includes('/') ? `${row[1].split('/')[0]} ${row[1].split('/')[1]} 1` : `${row[1]} 1 1`) : row[1]).getTime()
+
+          out[row[0]].set(time, row[2])
+          current = Date.now()
+          if (current - last > 500) {
+            await new Promise<void>((acc) => { console.log('pop'); acc() })
+            console.log(`Popping event loop ${count}`)
+            last = current;
+          }
+          if (ths.arrested) {
+            break;
+          }
+          // console.log(`Processing icd ${row[0]} ${count}/${data.rows.length}`)
+          count++
+        }
+        this.deathsByICD.set(description.icdCode, out)
+        ths.diseaseDirectory.set(description.icdCode, description)
+        console.log(`Got data for icd ${description.icdCode}`, out)
+        return out
+      } else {
+        return null;
+      }
+    } catch (err) {
+      console.log(`Failed to pull ${description.icdCode}`, err)
+    }
+  }
   async pullIcdCodes(max: number = -1) {
     let codes = await this.findIcdCodes()
     let ths = this;
+    let addedIcds: string[] = []
     await codes.forEachAsync(async (code, index) => {
       if (ths.diseaseDirectory.has(code[0])) {
         if (max != -1) {
@@ -811,30 +885,59 @@ export class Database {
         if (max != -1 && index >= max) {
           return 'BREAK'
         }
-        console.log(`${max != -1 ? (max - index) + ' ' : ''}Pulling data for ICD code ${code[0]}`, code)
-        try {
-          let data = await new WonderRequest().groupBy('AgeGroups').groupBy('Month').addParam('F_D76.V2', code[0]).requestTable(true)
-          if (data != null) {
-            ths.diseaseDirectory.set(code[0], { laymanName: code[2], technicalName: code[1], icdCode: code[0], maxPerMonth: data.rowMaximums[2] })
-          } else {
-            if (max != -1) {
-              max++
-            }
+        console.log(`${max != -1 ? (max - index) + ' ' : ''}Pulling? data for ICD code ${code[0]}`, code)
+        let description = { laymanName: code[2], technicalName: code[1], icdCode: code[0], maxPerMonth: -1 }
+
+        let codeResult = await ths.pullIcdCode(description)
+        if (codeResult == null) {
+          if (max != -1) {
+            max++
           }
-        } catch (err) {
-          console.log(`Failed to pull ${code[0]}`,err)
+        } else {
+          // ths.diseaseDirectory.set(code[0], description)
+          addedIcds.push(code[0])
         }
+
       }
     })
-    let output = this.diseaseDirectory.toArrayWithKeys().sort((a, b) => b[1].maxPerMonth - a[1].maxPerMonth).map(s => s[1])
-    console.log(output)
+    let output = this.diseaseDirectory.toArrayWithKeys().sort((a, b) => b[1].maxPerMonth - a[1].maxPerMonth).map(s => s[1])//[s[1],ths.deathsByICD.get(s[0])])
+    console.log(output, output.map(s => [s.icdCode, ths.deathsByICD.get(s.icdCode)]))
     if (this.fileAccessor) {
       this.fileAccessor.writeFile(this.diseaseDirectoryPath, output)
+      for (let icd of addedIcds) {
+        let json = ths.diseaseToJson(icd)
+        if (json != null) {
+          this.fileAccessor.writeFile(this.diseasePath(icd), json)
+        }
+      }
     }
     return output
   }
+  diseasePath(icdCode: string) {
+    return `./byICD/${icdCode.replaceAll('.', '_')}.json`
+  }
   diseaseDirectoryPath: string = './directory.json'
   diseaseDirectory: Map<string, DiseaseDescription> = new Map()
+  deathsByICD: Map<string, AgeGroupDataChannels> = new Map()
+
+  diseaseToJson(icdCode: string) {
+    if (!this.deathsByICD.has(icdCode)) {
+      console.log(`Cannot jsonify non-existant code ${icdCode}`)
+      return null;
+    }
+    let out: DiseaseData_JSON = {
+      description: this.diseaseDirectory.get(icdCode),
+      byAge: this.ageGroupsToJson(this.deathsByICD.get(icdCode))
+    }
+    return out;
+  }
+  private ageGroupsToJson(ageGroupChannels: AgeGroupDataChannels) {
+    let out: AgeGroupDataChannels_JSON = {} as any
+    for (let key of Object.keys(ageGroupChannels)) {
+      out[key] = (ageGroupChannels[key] as DataChannel).toJson()
+    }
+    return out;
+  }
   async pullCdcData() {
     let result = await fetch('https://data.cdc.gov/api/views/9bhg-hcku/rows.csv')
     let text = await result.text()
@@ -985,7 +1088,7 @@ export class DataChannel {
     let data = this.tree.toArray()
     return {
       title: this.title,
-      color: this.color.toHexString(),
+      color: this.color?.toHexString(),
       data: data
     }
   }

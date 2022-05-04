@@ -27,6 +27,10 @@ let database = new Database({
    await fs.promises.writeFile(absPath, typeof data == 'string' ? data : JSON.stringify(data))
     return 'success';
   },
+  async exists(pathName: string){
+    let absPath = path.resolve(__dirname, `../data/`, pathName);
+    return fs.existsSync(absPath)
+  }
 })
 
 export const listener = functions.https.onRequest(async (req, res) => {
@@ -81,9 +85,9 @@ function requestToFileName(fetchBody: string) {
 }
 export const WonderProxy = functions.https.onRequest(async (req, res) => {
   let fetchBody = req.body['request_xml']
-  console.log(`Fetch body: ${fetchBody}`)
+  // console.log(`Fetch body: ${fetchBody}`)
   let fileName = requestToFileName(fetchBody)
-  let exportPath = path.resolve(__dirname, `../data/${fileName}.xml`);
+  let exportPath = path.resolve(__dirname, `../data/xml/${fileName}.xml`);
   if (fs.existsSync(exportPath)) {
     console.log(`Using cache for request ${fileName}`)
     res.setHeader('Content-Type', 'application/xml')
@@ -92,7 +96,7 @@ export const WonderProxy = functions.https.onRequest(async (req, res) => {
     res.sendFile(exportPath)
     return;
   }
-  console.log(`Sending query to wonder:\n${fetchBody}`)
+  // console.log(`Sending query to wonder:\n${fetchBody}`)
   let result = await fetch(`https://wonder.cdc.gov/controller/datarequest/D76`, {
     method: 'POST',
     body: `request_xml=${fetchBody}`,
@@ -103,12 +107,61 @@ export const WonderProxy = functions.https.onRequest(async (req, res) => {
   let resultText = await result.text();
 
 
-  console.log(`saving to file: ${exportPath}`)
+  // console.log(`saving to file: ${exportPath}`)
   fs.writeFileSync(exportPath, resultText)
 
   res.setHeader('Content-Type', 'application/xml')
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.send(resultText)
+})
+export const Data = functions.https.onRequest(async (req, resp) => {
+  
+  resp.setHeader('Content-Type', 'application/json')
+  resp.setHeader('Access-Control-Allow-Origin', '*')
+  // let name = req.path.startsWith('.')
+  let file = path.resolve(__dirname, '../data/', '.' + req.path)
+  console.log(req.method)
+  switch(req.method){
+    case 'GET':
+      if(!fs.existsSync(file)){
+        resp.send(`No file ${file}`)
+      }
+      resp.sendFile(file)
+    break;
+    case 'POST':
+      let data = typeof req.body == 'string' ? req.body : JSON.stringify(req.body)
+     try{
+      await fs.promises.writeFile(file, data)
+    }catch(err){
+      resp.send(`Failed to save data ${JSON.stringify(err)}`)
+    }
+    break;
+    default:
+      resp.send(`Unknown method ${req.method}`)
+  }
+  
+})
+export const DataExists = functions.https.onRequest(async (req, resp) => {
+  
+  resp.setHeader('Content-Type', 'application/json')
+  resp.setHeader('Access-Control-Allow-Origin', '*')
+  // let name = req.path.startsWith('.')
+  let file = path.resolve(__dirname, '../data/', '.' + req.path)
+  console.log(`Checking if ${file} exists`)
+  switch(req.method){
+    case 'GET':
+      if(!fs.existsSync(file)){
+        resp.send(`false`)
+        return;
+      }
+      resp.send('true')
+    break;
+    
+    break;
+    default:
+      resp.send(`Unknown method ${req.method}`)
+  }
+  
 })
 export const Diseases = functions.https.onRequest(async (req, resp) => {
   let codes = await database.pullIcdCodes(10)
@@ -132,4 +185,4 @@ export const HashTypes = functions.https.onRequest(async (req, res) => {
     console.log('success', stdout)
     res.send(JSON.stringify({ status: 'Success', value: stdout }))
   })
-})
+}) 

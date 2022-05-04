@@ -17,7 +17,36 @@ ImportGoogleFont('Ubuntu:wght@400;700')
 window['WonderRequest'] = WonderRequest;
 window['WonderClient'] = WonderClient
 window['DeWonder'] = DeWonder;
-window['database'] = new Database()
+window['database'] = new Database({
+    async readFile<T>(path: string): Promise<T | { error: string }>{
+        if(path.startsWith('./')){
+            path = path.substring(2)
+        }
+        if(path.startsWith('/')){
+            path = path.substring(1)
+        }
+
+        let result = await fetch(`http://${location.hostname}:5001/gdsn3-22/us-central1/Data/${path}`)
+        let resultJson = await result.json()
+        console.log(`Client got file ${path}`,resultJson)
+        return resultJson;
+    },
+    async writeFile<T>(path: string, data: T | string): Promise<'success' | string>{
+        throw new Error(`Not implemented`)
+    },
+    async exists(path: string){
+        if(path.startsWith('./')){
+            path = path.substring(2) 
+        }
+        if(path.startsWith('/')){
+            path = path.substring(1)
+        }
+        let result = await fetch(`http://${location.hostname}:5001/gdsn3-22/us-central1/DataExists/${path}`)
+        let resultText = await result.text()
+        console.log(`Checking if ${path} exists`)
+        return resultText.toLowerCase() == 'true'
+    }
+})
  
 window['XmlToJson'] = XmlToJson
 // window["sodaConsumer"] = new soda.Consumer("explore.data.gov")
