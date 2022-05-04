@@ -15,7 +15,7 @@ declare global {
     }
     interface Map<K, V> {
         keysAsArray(): K[]
-        toArray(): Array<[K, V]>
+        
         getWithDefault(key: K, defaultValue: (key: K) => V): V
     }
     interface BTree<K, V> {
@@ -82,17 +82,17 @@ String.prototype.isBoolean = function () {
 String.prototype.isNumber = function () {
     return !Number.isNaN(Number(this))
 }
-if (typeof Map.prototype.toArray == 'undefined') {
-    console.log(`Shimming Map.toArray`)
-    Map.prototype.toArray = function <K, V>() {
-        let ths: Map<K, V> = this
-        let out: Array<[K, V]> = []
-        for (let key of ths.keys()) {
-            out.push([key, ths.get(key)]);
-        }
-        return out
-    }
-}
+// if (typeof Map.prototype.toArray == 'undefined') {
+//     console.log(`Shimming Map.toArray`)
+//     Map.prototype.toArray = function <K, V>() {
+//         let ths: Map<K, V> = this
+//         let out: Array<[K, V]> = []
+//         for (let key of ths.keys()) {
+//             out.push([key, ths.get(key)]);
+//         }
+//         return out
+//     }
+// }
 export function ensureFBF_Helpers() {
     console.log()
 }

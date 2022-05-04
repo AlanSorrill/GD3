@@ -1,13 +1,13 @@
 import { BristolBoard, BristolCursor, BristolFont, BristolHAlign, BristolVAlign, lerp, MouseDragListener, MouseMovementListener, MouseWheelListener, RawPointerData, RawPointerMoveData, RawPointerScrollData, SpecialKey, UIElement, UIFrameResult, UIFrame_CornerWidthHeight } from "bristolboard";
 import React from "react";
-import { DataChannel, MonthNames } from "../../srcFunctions/common/WonderData";
+import { AgeGroupDataChannels, DataChannel, Disease, DiseaseDisplay, MonthNames } from "../../srcFunctions/common/WonderData";
 import { EnglishNumbers, maxOfList, minOfList } from "../Helper";
 
 export interface LineGraph_Props {
     style: React.CSSProperties & {
         background: "transparent";
     }
-    sources: DataChannel[]
+    sources: Array<[Disease, DiseaseDisplay]>
     padding: number
 }
 export interface LineGraph_State {
@@ -79,23 +79,33 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
     setProps(props: LineGraph_Props) {
         console.log(`UIElement recieved props`, props)
         this.props = props
-        if (this.sources?.length > 0 && this.initialLoad) {
-            let maxCount = maxOfList(this.sources.map((s) => s.tree.size))
+        // if (this.sources?.length > 0 && this.initialLoad) {
+        //     this.sources.forEach(disease => {
+        //         let ageGroups = Object.keys(disease.deathsByAge)
+        //         let maxCount = (disease.deathsByAge[ageGroups[0]] as DataChannel).maxValue
+        //         let minCount = (disease.deathsByAge[ageGroups[0]] as DataChannel).minValue
+        //         this.startTime = (disease.deathsByAge[ageGroups[0]] as DataChannel).tree.minKey()
+        //         this.endTime = (disease.deathsByAge[ageGroups[0]] as DataChannel).tree.maxKey()
+        //         for (let ageGroup of ageGroups) {
+        //             maxCount = Math.max(maxCount, (disease.deathsByAge[ageGroup] as DataChannel).maxValue)
+        //             minCount = Math.min(minCount, (disease.deathsByAge[ageGroup] as DataChannel).minValue)
+        //         }
+        //         // let maxCount = maxOfList(.map((s) => s.tree.size))
 
-            this.startTime = minOfList(this.sources.map(s => s.tree.minKey()))
-            this.endTime = Math.max(this.startTime + 1000, maxOfList(this.sources.map(s => s.tree.maxKey())))
-            this.minValue = minOfList(this.sources.map(s => s.minValue))
-            this.maxValue = Math.max(this.minValue + 10, maxOfList(this.sources.map(s => s.maxValue)))
+        //         this.minValue = minCount
+        //         this.maxValue = maxCount
 
-            console.log(`Line graph initialized to ${this.startTime}-${this.endTime}`, maxCount)
-            this.startHandle.currentTime = this.startTime;
-            this.endHandle.currentTime = this.sources[0].tree.maxKey();
+        //         console.log(`Line graph initialized to ${this.startTime}-${this.endTime}`, maxCount)
+        //         this.startHandle.currentTime = this.startTime;
+        //         this.endHandle.currentTime = this.endTime
 
-            if (maxCount < 2) {
-                return;
-            }
-            this.initialLoad = false;
-        }
+        //         if (maxCount < 2) {
+        //             return;
+        //         }
+        //         this.initialLoad = false;
+        //     })
+
+        // }
 
     }
     maxValue: number = 10
@@ -193,7 +203,7 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         }
         // console.log(`xaxis`,[unitWidth(),textWidth])
         let deltaYears = b.getFullYear() - a.getFullYear()
-        return b.getMonth() - (deltaYears > 0 ? 0 : a.getMonth()) + 12*deltaYears
+        return b.getMonth() - (deltaYears > 0 ? 0 : a.getMonth()) + 12 * deltaYears
     }
     private setupText() {
         this.brist.fontFamily('Ubuntu')
@@ -214,7 +224,7 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         let units = this.getXUnits()
         let textPadding = 16
         // let textWidth = this.brist.ctx.measureText(`${units}   `).width
-            //  console.log('xaxis', units)
+        //  console.log('xaxis', units)
         // console.log('xaxis-----------------------------')
         while (d.getTime() <= this.endTime) {
             // console.log(`XAXIS`,d.getMonth())
@@ -311,11 +321,13 @@ export class UILineArea extends UIElement {
 
         if (this.sources) {
             this.brist.noFill()
-            this.sources.forEach((data: DataChannel) => {
-                this.brist.strokeColor(data.color)
+            this.sources.forEach((data: [Disease,DiseaseDisplay]) => {
+               data[1].channels.forEach((channelDisplay)=>{
+                this.brist.strokeColor(channelDisplay[1])
                 this.brist.strokeWeight(4)
                 this.brist.ctx.beginPath();
-                data.forRange(this.graph.startTime, this.graph.endTime, (time: number, value: number, count: number) => {
+                let channel = data[0].getChannel(channelDisplay[0])
+                channel?.forRange(this.graph.startTime, this.graph.endTime, (time: number, value: number, count: number) => {
                     if (count == 0) {
                         this.brist.ctx.moveTo(this.graph.timeToX(time, frame), this.valueToY(value, frame))
 
@@ -325,6 +337,7 @@ export class UILineArea extends UIElement {
                     }
                 })
                 this.brist.ctx.stroke()
+               })
             })
             this.brist.ctx.beginPath();
 

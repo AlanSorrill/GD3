@@ -4,32 +4,38 @@ import "./RonaDB"
 import { RedPillIndex } from "./RedPill/RedPillIndex";
 import { BristolBoard, FColor, fColor, lerp, UIElement, UIFrameResult, UIFrame_CornerWidthHeight } from "bristolboard";
 import { LineGraph } from "./LineGraph";
-import { DataChannel } from "../../srcFunctions/common/WonderData";
+import { Database, DataChannel, Disease, DiseaseDescription, DiseaseDisplay } from "../../srcFunctions/common/WonderData/WonderDataImports";
+
+
 export interface CaronaRoot_Props { }
 export interface CaronaRoot_State {
     values: Array<CaronaCasesAndDeathsOverTimeRow>
     redPill: boolean
-    diseases: Array<[string, DataChannel]>
+    diseaseDescriptions: Array<DiseaseDescription>
+    // diseases: Array<[string, Disease]>
+    displays: Array<[Disease, DiseaseDisplay]>
 }
 export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_State> {
     constructor(props: CaronaRoot_Props) {
         super(props);
-        this.state = { values: [], redPill: false, diseases: [] }
+        this.state = { values: [], redPill: false, diseaseDescriptions: [], displays: [] }
     }
 
     listenerIndex: number
-    componentDidMount(): void {
+    async componentDidMount() {
         if (searchParamObj['redpill'] == 'true') {
             this.setState({ redPill: true })
         }
         this.listenerIndex = database.addListener(() => {
             ths.setState({})
         })
+
         let ths = this;
         //Promise.all([
         // database.pullPopulation(),
-            // database.pullDeathsByCause()
+        // database.pullDeathsByCause()
 
+        this.setState({ diseaseDescriptions: database.diseaseDirectory.toArrayWithKeys().sort((a, b) => (b[1].maxPerMonth - a[1].maxPerMonth)).map(i => i[1]) })
 
 
     }
@@ -57,8 +63,8 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
                 <div style={{ flexGrow: 3, display: 'flex' }}>
                     {/* <img src="./project3/NavSpinny.png" style={{height: '100%'}}/> */}
                     <div ref={ths.squareDiv} style={{ backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundImage: `url("./project3/NavSpinny.png")`, height: '100%', width: ths.squareDiv.current?.clientHeight || 0 }} />
-                    <DiseaseList defaultSelected={['Influenza with pneumonia, influenza virus identified']} onChange={function (selected: [string, DataChannel][]) {
-                        ths.setState({ diseases: selected })
+                    <DiseaseList defaultSelected={['A02.1']} onChange={function (selected) {
+                        ths.setState({ displays: selected })
                     }} />
                     <div style={{ flexGrow: 1 }} />
                 </div>
@@ -66,19 +72,19 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
             </div>
             {/* <div style={{backgroundColor: 'purple', width: 500, height: 500}}></div> */}
 
-            <LineGraph style={{ background: 'transparent', flexGrow: 3 }} sources={this.state.diseases.mapOrDrop(d => d[1]?.tree ? d[1] : 'DROP')} padding={0} />
+            <LineGraph style={{ background: 'transparent', flexGrow: 3 }} sources={this.state.displays} padding={0} />
 
 
         </div >
-    } 
+    }
 
 }
 export interface DiseaseList_Props {
     defaultSelected: Array<string>
-    onChange: (selected: Array<[string, DataChannel]>) => void
+    onChange: (selected: Array<[Disease, DiseaseDisplay]>) => void
 }
 export interface DiseaseList_State {
-    diseases: Array<[string, DataChannel]>
+    diseases: Array<[Disease, DiseaseDisplay]>
 }
 export class DiseaseList extends React.Component<DiseaseList_Props, DiseaseList_State>{
     constructor(props: DiseaseList_Props) {
@@ -108,31 +114,32 @@ export class DiseaseList extends React.Component<DiseaseList_Props, DiseaseList_
                         <div style={{
                             width: 16, height: 16, marginRight: 16,
                             borderStyle: 'solid', borderWidth: 1, borderColor: fColor.grey.darken2.toHexString(), borderRadius: 4,
-                            display: 'inline-block', backgroundColor: disease[1].color.toHexString()
+                            display: 'inline-block', backgroundColor: disease[1].channels[0]?.[1]
                         }} />
                         <div style={{ lineHeight: '16px', fontSize: 18, color: fColor.darkText[0].toHexString(), maxWidth: '15vw' }}>{disease[0]}</div>
                     </div>
                 })}
             </div>
 
-            <DiseaseSearch ref={ths.diseaseSearch} defaultSelected={this.props.defaultSelected} allDiseases={database.deathsByCause.pairs()} onChange={function (selected: [string, DataChannel][]) {
+            <DiseaseSearch ref={ths.diseaseSearch} defaultSelectedICD={this.props.defaultSelected} onChange={function (selected) {
                 ths.setState({ diseases: selected })
                 ths.props.onChange(selected)
                 console.log(`Selected`, selected)
             }} />
         </div>
     }
-    
+
 }
 export interface DiseaseSearch_Props {
-    allDiseases: Array<[string, DataChannel]>,
-    defaultSelected: Array<string>
-    onChange: (selected: Array<[string, DataChannel]>) => void
+    defaultSelectedICD: Array<string>
+    onChange: (selected: Array<[Disease, DiseaseDisplay]>) => void
 }
 export interface DiseaseSearch_State {
+    allDiseases: Array<DiseaseDescription>,
     nameSearch: string
     showList: boolean
-    selectedDiseases: Array<[string, DataChannel]>
+    selectedDiseases: Array<[Disease, DiseaseDisplay]>
+
     defaultsLoaded: boolean
 }
 export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseSearch_State>{
@@ -142,20 +149,34 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
     constructor(props: DiseaseSearch_Props) {
         super(props);
 
-        this.state = { selectedDiseases: [], showList: false, nameSearch: '', defaultsLoaded: false }
+        this.state = { selectedDiseases: [], showList: false, allDiseases: [], nameSearch: '', defaultsLoaded: false }
 
     }
-    componentDidUpdate(prevProps: Readonly<DiseaseSearch_Props>, prevState: Readonly<DiseaseSearch_State>, snapshot?: any): void {
-        if (!this.state.defaultsLoaded && this.props.allDiseases.length > 0) {
-            let m = new Map(this.props.allDiseases)
-            let ths = this;
-            let selected: Array<[string, DataChannel]> = this.props.defaultSelected.map((name, index) => {
-                let d = m.get(name)
-                d.color = ths.generateGraphColor(index)
-                return [name, m.get(name)]
-            })
-            this.setState({ selectedDiseases: selected, defaultsLoaded: true })
-            this.props.onChange(selected)
+    async componentDidUpdate(prevProps: Readonly<DiseaseSearch_Props>, prevState: Readonly<DiseaseSearch_State>, snapshot?: any) {
+        let allDiseases = database.diseaseDirectory.toArray()
+        if (!this.state.defaultsLoaded && allDiseases.length > 0) {
+
+            // let m = new Map(allDiseases)
+            // let ths = this;
+            // let selected: Array<[string, DiseaseDescription]> = this.props.defaultSelected.map((name, index) => {
+            //     let d = m.get(name)
+            //     d.color = ths.generateGraphColor(index)
+            //     return [name, m.get(name)]
+            // })
+            // this.setState({ selectedDiseases: selected, defaultsLoaded: true })
+            // this.props.onChange(selected)
+            this.setState({ defaultsLoaded: true })
+            let selected: Array<[Disease, DiseaseDisplay]> = []
+            for (let icdCode of this.props.defaultSelectedICD) {
+                console.log(`Getting disease for ${icdCode}`)
+                let disease = await (database as Database).getDeathsForICD(icdCode)
+                if (disease == null) {
+                    console.log(`Failed to get disease for ${icdCode}`)
+                } else {
+                    selected.push([disease, { channels: [], icdCode: disease.description.icdCode }])
+                }
+            }
+            this.setState({ selectedDiseases: selected })
         }
     }
     containerRef: React.RefObject<HTMLDivElement> = React.createRef()
@@ -187,19 +208,27 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
                     borderStyle: 'solid', borderWidth: 2, borderRadius: 8,
                     maxHeight: '50vh', overflowY: 'scroll'
                 }}>
-                    {this.props.allDiseases.filter((disease: [name: string, data: DataChannel]) => (disease[0].toLowerCase().includes(this.state.nameSearch.toLowerCase()))).limit(50).sort((a, b) => (b[1].maxValue - a[1].maxValue)).map((disease) => {
+                    {this.state.allDiseases.filter((disease: DiseaseDescription) => (
+                        disease.technicalName.toLowerCase().includes(this.state.nameSearch.toLowerCase()) ||
+                        disease.laymanName.toLowerCase().includes(this.state.nameSearch.toLowerCase())
+                    )).limit(50).sort((a, b) => (b[1].maxValue - a[1].maxValue)).map((description) => {
                         return <div className={fColor.grey.lighten3.hoverCssClass}
-                            style={{ marginBottom: 2, maxWidth: 500, color: fColor.darkText[0].toHexString(), cursor: 'pointer' }} onClick={() => {
+                            style={{ marginBottom: 2, maxWidth: 500, color: fColor.darkText[0].toHexString(), cursor: 'pointer' }} onClick={async () => {
                                 let list = ths.state.selectedDiseases
-                                disease[1].color = ths.generateGraphColor(list.length)
-                                list.push(disease)
+                                let disease = await (database as Database).getDeathsForICD(description.icdCode)
+                                if (disease == null) {
+                                    console.log(`Failed to get disease for ${description?.icdCode || JSON.stringify(description)}`)
+                                }
+                                let display: DiseaseDisplay = { channels: [], icdCode: description.icdCode }
+                                // description.color = ths.generateGraphColor(list.length)
+                                list.push([disease, display])
                                 ths.props.onChange(list)
                                 ths.setState({ selectedDiseases: list, showList: false })
                             }}>
                             <div style={{ display: 'flex' }}>
-                                <div>{disease[0]}</div>
+                                <div>{description[0]}</div>
                                 <div style={{ flexGrow: 1 }} />
-                                <div>{disease[1].minValue.toEnglish()}-{disease[1].maxValue.toEnglish()}</div>
+                                <div>{description[1].minValue.toEnglish()}-{description[1].maxValue.toEnglish()}</div>
                             </div>
                             <div style={{ height: 1, backgroundColor: fColor.grey.darken2.toHexString() }} />
                         </div>
@@ -210,7 +239,7 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
     }
     defaultGraphColors: FColor[] = [fColor.red.lighten2, fColor.red.base, fColor.red.darken2, fColor.amber.darken2, fColor.amber.base]
     generateGraphColor(index: number) {
-        
+
         if (index >= 0 && index < this.defaultGraphColors.length) {
             return this.defaultGraphColors[index]
         }

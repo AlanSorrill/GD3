@@ -3,12 +3,13 @@ import ReactDom from 'react-dom'
 import { CaronaRoot } from './CaronaRoot';
 // import { ensureFColor } from '../Imports'
 import { ImportGoogleFont } from '../Helper';
-import { Database, DeWonder, WonderRequest } from '../../srcFunctions/common/WonderData';
+import {  DeWonder, WonderRequest } from '../../srcFunctions/common/WonderData';
 import './Project3Styles.css'
 
 import { XmlToJson } from '../../srcFunctions/common/FBF_Helpers';
 import { WonderClient } from './WonderClient';
 import { ensureBristolImports } from 'bristolboard';
+import { Database } from '../../srcFunctions/common/WonderData/WonderDataImports';
 
 // import * as soda from 'soda-js'
 ensureBristolImports();

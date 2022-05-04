@@ -4,9 +4,10 @@ import fetch from 'node-fetch'
 import * as fs from 'fs'
 import * as path from 'path'
 import './common/FBF_Helpers'
-import { Database, DeWonder, ExampleRequest, WonderQueryParam_Util, WonderRequest } from './common/WonderData'
+import {  DeWonder, ExampleRequest, WonderQueryParam_Util, WonderRequest } from './common/WonderData'
 import { exec } from 'child_process'
 import * as crypto from 'crypto'
+import { Database } from './common/WonderData/WonderDataImports';
 
 // // Start writing Firebase Functions
 // // https://firebase.google.com/docs/functions/typescript
@@ -87,9 +88,13 @@ export const WonderProxy = functions.https.onRequest(async (req, res) => {
   let fetchBody = req.body['request_xml']
   // console.log(`Fetch body: ${fetchBody}`)
   let fileName = requestToFileName(fetchBody)
-  let exportPath = path.resolve(__dirname, `../data/xml/${fileName}.xml`);
+  let fileDirectory = path.resolve(__dirname, `../data/xml/`)
+  if(!fs.existsSync(fileDirectory)){
+    fs.mkdirSync(fileDirectory)
+  }
+  let exportPath = path.resolve(fileDirectory, `${fileName}.xml`);
   if (fs.existsSync(exportPath)) {
-    console.log(`Using cache for request ${fileName}`)
+    console.log(`Using cache for request ${fileName}`) 
     res.setHeader('Content-Type', 'application/xml')
     res.setHeader('Access-Control-Allow-Origin', '*')
 

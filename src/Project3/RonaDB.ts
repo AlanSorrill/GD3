@@ -1,7 +1,7 @@
 import BTree from "sorted-btree"
 import { concactinate } from "../../srcFunctions/common/FBF_Helpers"
 // import {CDC_Creds} from './Secrets'
-export type Disease = 'COVID' | "FLU"
+// export type Disease = 'COVID' | "FLU"
 // export enum AgeGroup {
 //     babies = '< 1',
 //     toddlers = '1-4',
