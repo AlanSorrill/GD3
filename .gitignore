@@ -34,7 +34,7 @@ coverage
 
 data/
 funcBuild/
-
+firebaseAdminCreds.ts
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
 

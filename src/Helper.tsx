@@ -2,7 +2,8 @@
 import React, { DOMAttributes, DOMElement } from 'react';
 import ReactDom from 'react-dom'
 import BTree from 'sorted-btree';
-import { Database } from '../srcFunctions/common/WonderData';
+import { Database } from '../srcFunctions/common/WonderData/Database';
+// import { Database } from '../srcFunctions/common/WonderData';
 
 export type DeviceType = 'phone' | 'tablet' | 'desktop'
 export type Orientation = 'vertical' | 'horizontal'

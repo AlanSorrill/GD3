@@ -15,7 +15,7 @@ declare global {
     }
     interface Map<K, V> {
         keysAsArray(): K[]
-        
+
         getWithDefault(key: K, defaultValue: (key: K) => V): V
     }
     interface BTree<K, V> {
@@ -23,15 +23,20 @@ declare global {
     }
 
 }
-export function isNode(){
+export function isNode() {
     return typeof window == 'undefined'
+}
+export async function promiseDefault<T>(prom: Promise<T>, defaultValue: T): Promise<T> {
+    return new Promise((acc) => {
+        prom.then(acc).catch(e => acc(defaultValue))
+    })
 }
 // export function ObjectMap<A,B>(input: A, transform: <k extends keyof A>()=>B): B {
 // return null
 // }
 Array.prototype.forEachAsync = async function <T>(onEach: (item: T, index: number, ths: Array<T>) => Promise<void | 'BREAK'>) {
     for (let i = 0; i < this.length; i++) {
-        if(await onEach(this[i], i, this) == 'BREAK'){
+        if (await onEach(this[i], i, this) == 'BREAK') {
             break;
         }
     }

@@ -4,33 +4,81 @@ import fetch from 'node-fetch'
 import * as fs from 'fs'
 import * as path from 'path'
 import './common/FBF_Helpers'
-import {  DeWonder, ExampleRequest, WonderQueryParam_Util, WonderRequest } from './common/WonderData'
+import { DeWonder, ExampleRequest, WonderQueryParam_Util, WonderRequest } from './common/WonderData'
 import { exec } from 'child_process'
 import * as crypto from 'crypto'
 import { Database } from './common/WonderData/WonderDataImports';
-
+import { initializeApp, cert, ServiceAccount } from 'firebase-admin/app';
+import * as FirebaseStorage from 'firebase-admin/storage';
 // // Start writing Firebase Functions
 // // https://firebase.google.com/docs/functions/typescript
+import { FirebaseServiceAccountCreds } from './firebaseAdminCreds';
+
+initializeApp({
+  credential: cert(FirebaseServiceAccountCreds as any),
+  storageBucket: 'gs://gdsn3-22.appspot.com'
+});
+let firebaseStorage = FirebaseStorage.getStorage()
+let bucket = firebaseStorage.bucket()
+
 //
 console.log('test')
 
 let database = new Database({
   async readFile<T>(filePath) {
+    if (filePath.startsWith('./')) {
+      filePath = filePath.substring(2)
+    }
+    if (filePath.startsWith('/')) {
+      filePath = filePath.substring(1)
+    }
     let absPath = path.resolve(__dirname, `../data/`, filePath);
-    if (!fs.existsSync(absPath)) {
+    let reference = bucket.file("data/" + filePath);
+    if (!(await reference.exists())) {//(!fs.existsSync(absPath)) {
       return { error: `File doesn't exist: ${absPath}` }
     }
-    let data = await fs.promises.readFile(absPath)
-    return JSON.parse(data.toString()) 
+    // let data = await fs.promises.readFile(absPath)
+    // return JSON.parse(data.toString())
+
+    let [buffer] = await reference.download()
+    let result = buffer.toString()
+    return JSON.parse(result) as T;
   },
   async writeFile<T>(filePath: string, data: string | T) {
+    if (filePath.startsWith('./')) {
+      filePath = filePath.substring(2)
+    }
+    if (filePath.startsWith('/')) {
+      filePath = filePath.substring(1)
+    }
     let absPath = path.resolve(__dirname, `../data/`, filePath);
-   await fs.promises.writeFile(absPath, typeof data == 'string' ? data : JSON.stringify(data))
-    return 'success';
+    let reference = bucket.file("data/" + filePath);
+    let buffer = Buffer.from(typeof data == 'string' ? data : JSON.stringify(data), 'utf-8');
+    return new Promise((acc) => {
+      let blobStream = reference.createWriteStream({
+        resumable: false
+      })
+      blobStream.on('finish', () => {
+        acc("Success")
+      })
+        .on('error', (e) => {
+          acc(`Unable to upload file: ${JSON.stringify(e)}`)
+        })
+        .end(buffer)
+    })
+
+    // await uploadFirebaseFile(typeof data == 'string' ? data : JSON.stringify(data), filePath)//await fs.promises.writeFile(absPath, )
+    // return 'success';
   },
-  async exists(pathName: string){
-    let absPath = path.resolve(__dirname, `../data/`, pathName);
-    return fs.existsSync(absPath)
+  async exists(filePath: string) {
+    if (filePath.startsWith('./')) {
+      filePath = filePath.substring(2)
+    }
+    if (filePath.startsWith('/')) {
+      filePath = filePath.substring(1)
+    }
+    let reference = bucket.file("data/" + filePath);
+    return (await reference.exists())[0]//firebaseFileExists(pathName)// return fs.existsSync(absPath)
   }
 })
 
@@ -63,8 +111,9 @@ export const listener = functions.https.onRequest(async (req, res) => {
   res.send(JSON.stringify(inconsistencies))
 })
 export const ReqTest = functions.https.onRequest(async (req, res) => {
-  res.setHeader('Content-Type', 'application/xml')
-  res.send(new WonderRequest().groupBy('Year').addParam('M_1', 'D76.M1').toString())
+  // res.setHeader('Content-Type', 'application/xml')
+  // res.send(new WonderRequest().groupBy('Year').addParam('M_1', 'D76.M1').toString())
+  res.send(await database.fileAccessor.writeFile("test.json", { myBigData: "Stuff and things" }))
 })
 export const RonaTest = functions.https.onRequest(async (req, res) => {
   let data = await new WonderRequest().groupBy('Year').groupBy('AgeGroups').filterByYear(['1999', '2001']).request()
@@ -89,12 +138,12 @@ export const WonderProxy = functions.https.onRequest(async (req, res) => {
   // console.log(`Fetch body: ${fetchBody}`)
   let fileName = requestToFileName(fetchBody)
   let fileDirectory = path.resolve(__dirname, `../data/xml/`)
-  if(!fs.existsSync(fileDirectory)){
+  if (!fs.existsSync(fileDirectory)) {
     fs.mkdirSync(fileDirectory)
   }
   let exportPath = path.resolve(fileDirectory, `${fileName}.xml`);
   if (fs.existsSync(exportPath)) {
-    console.log(`Using cache for request ${fileName}`) 
+    console.log(`Using cache for request ${fileName}`)
     res.setHeader('Content-Type', 'application/xml')
     res.setHeader('Access-Control-Allow-Origin', '*')
 
@@ -120,59 +169,61 @@ export const WonderProxy = functions.https.onRequest(async (req, res) => {
   res.send(resultText)
 })
 export const Data = functions.https.onRequest(async (req, resp) => {
-  
+
   resp.setHeader('Content-Type', 'application/json')
   resp.setHeader('Access-Control-Allow-Origin', '*')
   // let name = req.path.startsWith('.')
-  let file = path.resolve(__dirname, '../data/', '.' + req.path)
-  console.log(req.method)
-  switch(req.method){
+  let filePath = req.path.startsWith("/") ? req.path.substring(1) : req.path
+  console.log(filePath)
+  switch (req.method) {
     case 'GET':
-      if(!fs.existsSync(file)){
-        resp.send(`No file ${file}`)
+
+      if (!(await database.fileAccessor.exists(filePath))) {
+        resp.send(`No file ${filePath}`)
       }
-      resp.sendFile(file)
-    break;
+      let file = await database.fileAccessor.readFile(filePath)
+      resp.send(file)
+      break;
     case 'POST':
       let data = typeof req.body == 'string' ? req.body : JSON.stringify(req.body)
-     try{
-      await fs.promises.writeFile(file, data)
-    }catch(err){
-      resp.send(`Failed to save data ${JSON.stringify(err)}`)
-    }
-    break;
+      try {
+        resp.send(await database.fileAccessor.writeFile(filePath, data))
+      } catch (err) {
+        resp.send(`Failed to save data ${JSON.stringify(err)}`)
+      }
+      break;
     default:
       resp.send(`Unknown method ${req.method}`)
   }
-  
+
 })
 export const DataExists = functions.https.onRequest(async (req, resp) => {
-  
+
   resp.setHeader('Content-Type', 'application/json')
   resp.setHeader('Access-Control-Allow-Origin', '*')
   // let name = req.path.startsWith('.')
   let file = path.resolve(__dirname, '../data/', '.' + req.path)
   console.log(`Checking if ${file} exists`)
-  switch(req.method){
+  switch (req.method) {
     case 'GET':
-      if(!fs.existsSync(file)){
+      if (!fs.existsSync(file)) {
         resp.send(`false`)
         return;
       }
       resp.send('true')
-    break;
-    
-    break;
+      break;
+
+      break;
     default:
       resp.send(`Unknown method ${req.method}`)
   }
-  
+
 })
 export const Diseases = functions.https.onRequest(async (req, resp) => {
   let codes = await database.pullIcdCodes(10)
   resp.setHeader('Content-Type', 'application/json')
   resp.setHeader('Access-Control-Allow-Origin', '*')
-  
+
   resp.send(JSON.stringify(codes))
 })
 export const HashTypes = functions.https.onRequest(async (req, res) => {
@@ -180,7 +231,7 @@ export const HashTypes = functions.https.onRequest(async (req, res) => {
     if (err) {
       console.log('err', err)
       res.send(JSON.stringify({ status: 'Error', error: err }))
-      return; 
+      return;
     }
     if (stderr) {
       console.log('stderr', stderr)
