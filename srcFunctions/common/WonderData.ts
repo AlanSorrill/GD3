@@ -730,7 +730,7 @@ export class Disease {
   }
   getAvailableChannels() {
     let out: [id: DiseaseChannelId, title: string][] = []
-    for (let key in Object.keys(this.deathsByAge)) {
+    for (let key of Object.keys(this.deathsByAge)) {
       out.push([`DeathsByAge~${key as AgeGroup}`, (this.deathsByAge[key] as DataChannel).title])
     }
     return out;
@@ -811,7 +811,7 @@ export class DataChannel {
     this.tree.forRange(startNode[0], endNode[0], true, onEach)
   }
   static fromJson(json: DataChannel_JSON) {
-    let out = new DataChannel(json.title, FColor.fromHex(json.color, '', ''))
+    let out = new DataChannel(json.title, FColor.fromHex(json?.color ?? '000000', '', ''))
     out.tree.setPairs(json.data)
     out.minValue = json.valueRange[0]
     out.maxValue = json.valueRange[1]

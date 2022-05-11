@@ -1,895 +1,918 @@
-/******/ (() => { // webpackBootstrap
-/******/ 	"use strict";
-/******/ 	var __webpack_modules__ = ({
+/******/
+(() => { // webpackBootstrap
+        /******/
+        "use strict";
+        /******/
+        var __webpack_modules__ = ({
 
-/***/ "./srcFunctions/WPFunctions.ts":
-/*!*************************************!*\
-  !*** ./srcFunctions/WPFunctions.ts ***!
-  \*************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.HashTypes = exports.Diseases = exports.DataExists = exports.Data = exports.WonderProxy = exports.RonaTest = exports.ReqTest = exports.listener = void 0;
-const functions = __importStar(__webpack_require__(/*! firebase-functions */ "firebase-functions"));
-const node_fetch_1 = __importDefault(__webpack_require__(/*! node-fetch */ "node-fetch"));
-const fs = __importStar(__webpack_require__(/*! fs */ "fs"));
-const path = __importStar(__webpack_require__(/*! path */ "path"));
-__webpack_require__(/*! ./common/FBF_Helpers */ "./srcFunctions/common/FBF_Helpers.ts");
-const WonderData_1 = __webpack_require__(/*! ./common/WonderData */ "./srcFunctions/common/WonderData.ts");
-const child_process_1 = __webpack_require__(/*! child_process */ "child_process");
-const crypto = __importStar(__webpack_require__(/*! crypto */ "crypto"));
-const WonderDataImports_1 = __webpack_require__(/*! ./common/WonderData/WonderDataImports */ "./srcFunctions/common/WonderData/WonderDataImports.ts");
-const app_1 = __webpack_require__(/*! firebase-admin/app */ "firebase-admin/app");
-const FirebaseStorage = __importStar(__webpack_require__(/*! firebase-admin/storage */ "firebase-admin/storage"));
-// // Start writing Firebase Functions
-// // https://firebase.google.com/docs/functions/typescript
-const firebaseAdminCreds_1 = __webpack_require__(/*! ./firebaseAdminCreds */ "./srcFunctions/firebaseAdminCreds.ts");
-(0, app_1.initializeApp)({
-    credential: (0, app_1.cert)(firebaseAdminCreds_1.FirebaseServiceAccountCreds),
-    storageBucket: 'gs://gdsn3-22.appspot.com'
-});
-let firebaseStorage = FirebaseStorage.getStorage();
-let bucket = firebaseStorage.bucket();
-//
-console.log('test');
-let database = new WonderDataImports_1.Database({
-    readFile(filePath) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (filePath.startsWith('./')) {
-                filePath = filePath.substring(2);
-            }
-            if (filePath.startsWith('/')) {
-                filePath = filePath.substring(1);
-            }
-            let absPath = path.resolve(__dirname, `../data/`, filePath);
-            let reference = bucket.file("data/" + filePath);
-            if (!(yield reference.exists())) { //(!fs.existsSync(absPath)) {
-                return { error: `File doesn't exist: ${absPath}` };
-            }
-            // let data = await fs.promises.readFile(absPath)
-            // return JSON.parse(data.toString())
-            let [buffer] = yield reference.download();
-            let result = buffer.toString();
-            return JSON.parse(result);
-        });
-    },
-    writeFile(filePath, data) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (filePath.startsWith('./')) {
-                filePath = filePath.substring(2);
-            }
-            if (filePath.startsWith('/')) {
-                filePath = filePath.substring(1);
-            }
-            let absPath = path.resolve(__dirname, `../data/`, filePath);
-            let reference = bucket.file("data/" + filePath);
-            let buffer = Buffer.from(typeof data == 'string' ? data : JSON.stringify(data), 'utf-8');
-            return new Promise((acc) => {
-                let blobStream = reference.createWriteStream({
-                    resumable: false
-                });
-                blobStream.on('finish', () => {
-                    acc("Success");
-                })
-                    .on('error', (e) => {
-                    acc(`Unable to upload file: ${JSON.stringify(e)}`);
-                })
-                    .end(buffer);
-            });
-            // await uploadFirebaseFile(typeof data == 'string' ? data : JSON.stringify(data), filePath)//await fs.promises.writeFile(absPath, )
-            // return 'success';
-        });
-    },
-    exists(filePath) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (filePath.startsWith('./')) {
-                filePath = filePath.substring(2);
-            }
-            if (filePath.startsWith('/')) {
-                filePath = filePath.substring(1);
-            }
-            let reference = bucket.file("data/" + filePath);
-            return (yield reference.exists())[0]; //firebaseFileExists(pathName)// return fs.existsSync(absPath)
-        });
-    }
-});
-exports.listener = functions.https.onRequest((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    res.setHeader('Content-Type', 'application/xml');
-    let exampleParams = WonderData_1.ExampleRequest.replace('</request-parameters>', '').replace('<request-parameters>', '').replaceAll('<value/>', '<value></value>').replaceAll('<parameter>', '').replaceAll('</name>', '').replaceAll('</value>', '').replaceAll('<name>', '').split('</parameter>').map(str => {
-        let tmp = str.split('<value>');
-        let name = tmp[0];
-        let rest = tmp.slice(1);
-        return [name, rest];
-    });
-    let reqTestParams = new WonderData_1.WonderRequest().groupBy('Year').groupBy('Race').addParam('F_D76.V25', WonderData_1.WonderQueryParam_Util.All).toParamMap();
-    let requestParams = new Map();
-    let inconsistencies = [];
-    exampleParams.forEach((value) => {
-        if (!reqTestParams.has(value[0])) {
-            inconsistencies.push(`Request missing ${value[0]}`);
-        }
-        requestParams.set(value[0], value[1]);
-    });
-    for (let exParamName in reqTestParams.keys()) {
-        if (!requestParams.has(exParamName)) {
-            inconsistencies.push(`Examples missing ${exParamName}`);
-        }
-    }
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify(inconsistencies));
-}));
-exports.ReqTest = functions.https.onRequest((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // res.setHeader('Content-Type', 'application/xml')
-    // res.send(new WonderRequest().groupBy('Year').addParam('M_1', 'D76.M1').toString())
-    res.send(yield database.fileAccessor.writeFile("test.json", { myBigData: "Stuff and things" }));
-}));
-exports.RonaTest = functions.https.onRequest((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    let data = yield new WonderData_1.WonderRequest().groupBy('Year').groupBy('AgeGroups').filterByYear(['1999', '2001']).request();
-    let exportPath = path.resolve(__dirname, '../data/exampleResponse.xml');
-    console.log(`saving to file${exportPath}`);
-    fs.writeFileSync(exportPath, JSON.stringify(data));
-    console.log('saved');
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.send(data);
-}));
-function requestToFileName(fetchBody) {
-    console.log(`Req to file name\n${fetchBody}`);
-    return crypto.createHash('md5').update(fetchBody).digest("hex");
-}
-exports.WonderProxy = functions.https.onRequest((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    let fetchBody = req.body['request_xml'];
-    // console.log(`Fetch body: ${fetchBody}`)
-    let fileName = requestToFileName(fetchBody);
-    let fileDirectory = path.resolve(__dirname, `../data/xml/`);
-    if (!fs.existsSync(fileDirectory)) {
-        fs.mkdirSync(fileDirectory);
-    }
-    let exportPath = path.resolve(fileDirectory, `${fileName}.xml`);
-    if (fs.existsSync(exportPath)) {
-        console.log(`Using cache for request ${fileName}`);
-        res.setHeader('Content-Type', 'application/xml');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.sendFile(exportPath);
-        return;
-    }
-    // console.log(`Sending query to wonder:\n${fetchBody}`)
-    let result = yield (0, node_fetch_1.default)(`https://wonder.cdc.gov/controller/datarequest/D76`, {
-        method: 'POST',
-        body: `request_xml=${fetchBody}`,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/xml' },
-        // mode: 'no-cors'
-    });
-    let resultText = yield result.text();
-    // console.log(`saving to file: ${exportPath}`)
-    fs.writeFileSync(exportPath, resultText);
-    res.setHeader('Content-Type', 'application/xml');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.send(resultText);
-}));
-exports.Data = functions.https.onRequest((req, resp) => __awaiter(void 0, void 0, void 0, function* () {
-    resp.setHeader('Content-Type', 'application/json');
-    resp.setHeader('Access-Control-Allow-Origin', '*');
-    // let name = req.path.startsWith('.')
-    let filePath = req.path.startsWith("/") ? req.path.substring(1) : req.path;
-    console.log(filePath);
-    switch (req.method) {
-        case 'GET':
-            if (!(yield database.fileAccessor.exists(filePath))) {
-                resp.send(`No file ${filePath}`);
-            }
-            let file = yield database.fileAccessor.readFile(filePath);
-            resp.send(file);
-            break;
-        case 'POST':
-            let data = typeof req.body == 'string' ? req.body : JSON.stringify(req.body);
-            try {
-                resp.send(yield database.fileAccessor.writeFile(filePath, data));
-            }
-            catch (err) {
-                resp.send(`Failed to save data ${JSON.stringify(err)}`);
-            }
-            break;
-        default:
-            resp.send(`Unknown method ${req.method}`);
-    }
-}));
-exports.DataExists = functions.https.onRequest((req, resp) => __awaiter(void 0, void 0, void 0, function* () {
-    resp.setHeader('Content-Type', 'application/json');
-    resp.setHeader('Access-Control-Allow-Origin', '*');
-    // let name = req.path.startsWith('.')
-    let file = path.resolve(__dirname, '../data/', '.' + req.path);
-    console.log(`Checking if ${file} exists`);
-    switch (req.method) {
-        case 'GET':
-            if (!fs.existsSync(file)) {
-                resp.send(`false`);
-                return;
-            }
-            resp.send('true');
-            break;
-            break;
-        default:
-            resp.send(`Unknown method ${req.method}`);
-    }
-}));
-exports.Diseases = functions.https.onRequest((req, resp) => __awaiter(void 0, void 0, void 0, function* () {
-    let codes = yield database.pullIcdCodes(10);
-    resp.setHeader('Content-Type', 'application/json');
-    resp.setHeader('Access-Control-Allow-Origin', '*');
-    resp.send(JSON.stringify(codes));
-}));
-exports.HashTypes = functions.https.onRequest((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    (0, child_process_1.exec)('openssl list -digest-algorithms', (err, stdout, stderr) => {
-        if (err) {
-            console.log('err', err);
-            res.send(JSON.stringify({ status: 'Error', error: err }));
-            return;
-        }
-        if (stderr) {
-            console.log('stderr', stderr);
-            res.send(JSON.stringify({ status: 'STDError', error: stderr }));
-            return;
-        }
-        console.log('success', stdout);
-        res.send(JSON.stringify({ status: 'Success', value: stdout }));
-    });
-}));
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiV1BGdW5jdGlvbnMuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi9zcmNGdW5jdGlvbnMvV1BGdW5jdGlvbnMudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQUFBLDhEQUFnRDtBQUNoRCw0REFBOEI7QUFFOUIsdUNBQXdCO0FBQ3hCLDJDQUE0QjtBQUM1QixnQ0FBNkI7QUFDN0Isb0RBQW9HO0FBQ3BHLGlEQUFvQztBQUNwQywrQ0FBZ0M7QUFDaEMsNkVBQWlFO0FBQ2pFLDRDQUF5RTtBQUN6RSx3RUFBMEQ7QUFDMUQsc0NBQXNDO0FBQ3RDLDJEQUEyRDtBQUMzRCw2REFBbUU7QUFFbkUsSUFBQSxtQkFBYSxFQUFDO0lBQ1osVUFBVSxFQUFFLElBQUEsVUFBSSxFQUFDLGdEQUFrQyxDQUFDO0lBQ3BELGFBQWEsRUFBRSwyQkFBMkI7Q0FDM0MsQ0FBQyxDQUFDO0FBQ0gsSUFBSSxlQUFlLEdBQUcsZUFBZSxDQUFDLFVBQVUsRUFBRSxDQUFBO0FBQ2xELElBQUksTUFBTSxHQUFHLGVBQWUsQ0FBQyxNQUFNLEVBQUUsQ0FBQTtBQUVyQyxFQUFFO0FBQ0YsT0FBTyxDQUFDLEdBQUcsQ0FBQyxNQUFNLENBQUMsQ0FBQTtBQUVuQixJQUFJLFFBQVEsR0FBRyxJQUFJLDRCQUFRLENBQUM7SUFDcEIsUUFBUSxDQUFJLFFBQVE7O1lBQ3hCLElBQUksUUFBUSxDQUFDLFVBQVUsQ0FBQyxJQUFJLENBQUMsRUFBRTtnQkFDN0IsUUFBUSxHQUFHLFFBQVEsQ0FBQyxTQUFTLENBQUMsQ0FBQyxDQUFDLENBQUE7YUFDakM7WUFDRCxJQUFJLFFBQVEsQ0FBQyxVQUFVLENBQUMsR0FBRyxDQUFDLEVBQUU7Z0JBQzVCLFFBQVEsR0FBRyxRQUFRLENBQUMsU0FBUyxDQUFDLENBQUMsQ0FBQyxDQUFBO2FBQ2pDO1lBQ0QsSUFBSSxPQUFPLEdBQUcsSUFBSSxDQUFDLE9BQU8sQ0FBQyxTQUFTLEVBQUUsVUFBVSxFQUFFLFFBQVEsQ0FBQyxDQUFDO1lBQzVELElBQUksU0FBUyxHQUFHLE1BQU0sQ0FBQyxJQUFJLENBQUMsT0FBTyxHQUFHLFFBQVEsQ0FBQyxDQUFDO1lBQ2hELElBQUksQ0FBQyxDQUFDLE1BQU0sU0FBUyxDQUFDLE1BQU0sRUFBRSxDQUFDLEVBQUUsRUFBQyw2QkFBNkI7Z0JBQzdELE9BQU8sRUFBRSxLQUFLLEVBQUUsdUJBQXVCLE9BQU8sRUFBRSxFQUFFLENBQUE7YUFDbkQ7WUFDRCxpREFBaUQ7WUFDakQscUNBQXFDO1lBRXJDLElBQUksQ0FBQyxNQUFNLENBQUMsR0FBRyxNQUFNLFNBQVMsQ0FBQyxRQUFRLEVBQUUsQ0FBQTtZQUN6QyxJQUFJLE1BQU0sR0FBRyxNQUFNLENBQUMsUUFBUSxFQUFFLENBQUE7WUFDOUIsT0FBTyxJQUFJLENBQUMsS0FBSyxDQUFDLE1BQU0sQ0FBTSxDQUFDO1FBQ2pDLENBQUM7S0FBQTtJQUNLLFNBQVMsQ0FBSSxRQUFnQixFQUFFLElBQWdCOztZQUNuRCxJQUFJLFFBQVEsQ0FBQyxVQUFVLENBQUMsSUFBSSxDQUFDLEVBQUU7Z0JBQzdCLFFBQVEsR0FBRyxRQUFRLENBQUMsU0FBUyxDQUFDLENBQUMsQ0FBQyxDQUFBO2FBQ2pDO1lBQ0QsSUFBSSxRQUFRLENBQUMsVUFBVSxDQUFDLEdBQUcsQ0FBQyxFQUFFO2dCQUM1QixRQUFRLEdBQUcsUUFBUSxDQUFDLFNBQVMsQ0FBQyxDQUFDLENBQUMsQ0FBQTthQUNqQztZQUNELElBQUksT0FBTyxHQUFHLElBQUksQ0FBQyxPQUFPLENBQUMsU0FBUyxFQUFFLFVBQVUsRUFBRSxRQUFRLENBQUMsQ0FBQztZQUM1RCxJQUFJLFNBQVMsR0FBRyxNQUFNLENBQUMsSUFBSSxDQUFDLE9BQU8sR0FBRyxRQUFRLENBQUMsQ0FBQztZQUNoRCxJQUFJLE1BQU0sR0FBRyxNQUFNLENBQUMsSUFBSSxDQUFDLE9BQU8sSUFBSSxJQUFJLFFBQVEsQ0FBQyxDQUFDLENBQUMsSUFBSSxDQUFDLENBQUMsQ0FBQyxJQUFJLENBQUMsU0FBUyxDQUFDLElBQUksQ0FBQyxFQUFFLE9BQU8sQ0FBQyxDQUFDO1lBQ3pGLE9BQU8sSUFBSSxPQUFPLENBQUMsQ0FBQyxHQUFHLEVBQUUsRUFBRTtnQkFDekIsSUFBSSxVQUFVLEdBQUcsU0FBUyxDQUFDLGlCQUFpQixDQUFDO29CQUMzQyxTQUFTLEVBQUUsS0FBSztpQkFDakIsQ0FBQyxDQUFBO2dCQUNGLFVBQVUsQ0FBQyxFQUFFLENBQUMsUUFBUSxFQUFFLEdBQUcsRUFBRTtvQkFDM0IsR0FBRyxDQUFDLFNBQVMsQ0FBQyxDQUFBO2dCQUNoQixDQUFDLENBQUM7cUJBQ0MsRUFBRSxDQUFDLE9BQU8sRUFBRSxDQUFDLENBQUMsRUFBRSxFQUFFO29CQUNqQixHQUFHLENBQUMsMEJBQTBCLElBQUksQ0FBQyxTQUFTLENBQUMsQ0FBQyxDQUFDLEVBQUUsQ0FBQyxDQUFBO2dCQUNwRCxDQUFDLENBQUM7cUJBQ0QsR0FBRyxDQUFDLE1BQU0sQ0FBQyxDQUFBO1lBQ2hCLENBQUMsQ0FBQyxDQUFBO1lBRUYsb0lBQW9JO1lBQ3BJLG9CQUFvQjtRQUN0QixDQUFDO0tBQUE7SUFDSyxNQUFNLENBQUMsUUFBZ0I7O1lBQzNCLElBQUksUUFBUSxDQUFDLFVBQVUsQ0FBQyxJQUFJLENBQUMsRUFBRTtnQkFDN0IsUUFBUSxHQUFHLFFBQVEsQ0FBQyxTQUFTLENBQUMsQ0FBQyxDQUFDLENBQUE7YUFDakM7WUFDRCxJQUFJLFFBQVEsQ0FBQyxVQUFVLENBQUMsR0FBRyxDQUFDLEVBQUU7Z0JBQzVCLFFBQVEsR0FBRyxRQUFRLENBQUMsU0FBUyxDQUFDLENBQUMsQ0FBQyxDQUFBO2FBQ2pDO1lBQ0QsSUFBSSxTQUFTLEdBQUcsTUFBTSxDQUFDLElBQUksQ0FBQyxPQUFPLEdBQUcsUUFBUSxDQUFDLENBQUM7WUFDaEQsT0FBTyxDQUFDLE1BQU0sU0FBUyxDQUFDLE1BQU0sRUFBRSxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUEsQ0FBQSw4REFBOEQ7UUFDcEcsQ0FBQztLQUFBO0NBQ0YsQ0FBQyxDQUFBO0FBRVcsUUFBQSxRQUFRLEdBQUcsU0FBUyxDQUFDLEtBQUssQ0FBQyxTQUFTLENBQUMsQ0FBTyxHQUFHLEVBQUUsR0FBRyxFQUFFLEVBQUU7SUFDbkUsR0FBRyxDQUFDLFNBQVMsQ0FBQyxjQUFjLEVBQUUsaUJBQWlCLENBQUMsQ0FBQTtJQUNoRCxJQUFJLGFBQWEsR0FBeUIsMkJBQWMsQ0FBQyxPQUFPLENBQUMsdUJBQXVCLEVBQUUsRUFBRSxDQUFDLENBQUMsT0FBTyxDQUFDLHNCQUFzQixFQUFFLEVBQUUsQ0FBQyxDQUFDLFVBQVUsQ0FBQyxVQUFVLEVBQUUsaUJBQWlCLENBQUMsQ0FBQyxVQUFVLENBQUMsYUFBYSxFQUFFLEVBQUUsQ0FBQyxDQUFDLFVBQVUsQ0FBQyxTQUFTLEVBQUUsRUFBRSxDQUFDLENBQUMsVUFBVSxDQUFDLFVBQVUsRUFBRSxFQUFFLENBQUMsQ0FBQyxVQUFVLENBQUMsUUFBUSxFQUFFLEVBQUUsQ0FBQyxDQUFDLEtBQUssQ0FBQyxjQUFjLENBQUMsQ0FBQyxHQUFHLENBQUMsR0FBRyxDQUFDLEVBQUU7UUFDdFQsSUFBSSxHQUFHLEdBQUcsR0FBRyxDQUFDLEtBQUssQ0FBQyxTQUFTLENBQUMsQ0FBQztRQUMvQixJQUFJLElBQUksR0FBRyxHQUFHLENBQUMsQ0FBQyxDQUFDLENBQUE7UUFDakIsSUFBSSxJQUFJLEdBQUcsR0FBRyxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQTtRQUN2QixPQUFPLENBQUMsSUFBSSxFQUFFLElBQUksQ0FBQyxDQUFBO0lBQ3JCLENBQUMsQ0FBQyxDQUFBO0lBQ0YsSUFBSSxhQUFhLEdBQUcsSUFBSSwwQkFBYSxFQUFFLENBQUMsT0FBTyxDQUFDLE1BQU0sQ0FBQyxDQUFDLE9BQU8sQ0FBQyxNQUFNLENBQUMsQ0FBQyxRQUFRLENBQUMsV0FBVyxFQUFFLGtDQUFxQixDQUFDLEdBQUcsQ0FBQyxDQUFDLFVBQVUsRUFBRSxDQUFBO0lBRXJJLElBQUksYUFBYSxHQUEwQixJQUFJLEdBQUcsRUFBRSxDQUFDO0lBQ3JELElBQUksZUFBZSxHQUFhLEVBQUUsQ0FBQTtJQUNsQyxhQUFhLENBQUMsT0FBTyxDQUFDLENBQUMsS0FBeUIsRUFBRSxFQUFFO1FBQ2xELElBQUksQ0FBQyxhQUFhLENBQUMsR0FBRyxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQyxFQUFFO1lBQ2hDLGVBQWUsQ0FBQyxJQUFJLENBQUMsbUJBQW1CLEtBQUssQ0FBQyxDQUFDLENBQUMsRUFBRSxDQUFDLENBQUE7U0FDcEQ7UUFDRCxhQUFhLENBQUMsR0FBRyxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUMsRUFBRSxLQUFLLENBQUMsQ0FBQyxDQUFDLENBQUMsQ0FBQTtJQUN2QyxDQUFDLENBQUMsQ0FBQztJQUNILEtBQUssSUFBSSxXQUFXLElBQUksYUFBYSxDQUFDLElBQUksRUFBRSxFQUFFO1FBQzVDLElBQUksQ0FBQyxhQUFhLENBQUMsR0FBRyxDQUFDLFdBQVcsQ0FBQyxFQUFFO1lBQ25DLGVBQWUsQ0FBQyxJQUFJLENBQUMsb0JBQW9CLFdBQVcsRUFBRSxDQUFDLENBQUE7U0FDeEQ7S0FDRjtJQUdELEdBQUcsQ0FBQyxTQUFTLENBQUMsY0FBYyxFQUFFLGtCQUFrQixDQUFDLENBQUE7SUFDakQsR0FBRyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsU0FBUyxDQUFDLGVBQWUsQ0FBQyxDQUFDLENBQUE7QUFDM0MsQ0FBQyxDQUFBLENBQUMsQ0FBQTtBQUNXLFFBQUEsT0FBTyxHQUFHLFNBQVMsQ0FBQyxLQUFLLENBQUMsU0FBUyxDQUFDLENBQU8sR0FBRyxFQUFFLEdBQUcsRUFBRSxFQUFFO0lBQ2xFLG1EQUFtRDtJQUNuRCxxRkFBcUY7SUFDckYsR0FBRyxDQUFDLElBQUksQ0FBQyxNQUFNLFFBQVEsQ0FBQyxZQUFZLENBQUMsU0FBUyxDQUFDLFdBQVcsRUFBRSxFQUFFLFNBQVMsRUFBRSxrQkFBa0IsRUFBRSxDQUFDLENBQUMsQ0FBQTtBQUNqRyxDQUFDLENBQUEsQ0FBQyxDQUFBO0FBQ1csUUFBQSxRQUFRLEdBQUcsU0FBUyxDQUFDLEtBQUssQ0FBQyxTQUFTLENBQUMsQ0FBTyxHQUFHLEVBQUUsR0FBRyxFQUFFLEVBQUU7SUFDbkUsSUFBSSxJQUFJLEdBQUcsTUFBTSxJQUFJLDBCQUFhLEVBQUUsQ0FBQyxPQUFPLENBQUMsTUFBTSxDQUFDLENBQUMsT0FBTyxDQUFDLFdBQVcsQ0FBQyxDQUFDLFlBQVksQ0FBQyxDQUFDLE1BQU0sRUFBRSxNQUFNLENBQUMsQ0FBQyxDQUFDLE9BQU8sRUFBRSxDQUFBO0lBR2xILElBQUksVUFBVSxHQUFHLElBQUksQ0FBQyxPQUFPLENBQUMsU0FBUyxFQUFFLDZCQUE2QixDQUFDLENBQUM7SUFDeEUsT0FBTyxDQUFDLEdBQUcsQ0FBQyxpQkFBaUIsVUFBVSxFQUFFLENBQUMsQ0FBQTtJQUMxQyxFQUFFLENBQUMsYUFBYSxDQUFDLFVBQVUsRUFBRSxJQUFJLENBQUMsU0FBUyxDQUFDLElBQUksQ0FBQyxDQUFDLENBQUE7SUFDbEQsT0FBTyxDQUFDLEdBQUcsQ0FBQyxPQUFPLENBQUMsQ0FBQTtJQUNwQixHQUFHLENBQUMsU0FBUyxDQUFDLGNBQWMsRUFBRSxrQkFBa0IsQ0FBQyxDQUFBO0lBQ2pELEdBQUcsQ0FBQyxTQUFTLENBQUMsNkJBQTZCLEVBQUUsR0FBRyxDQUFDLENBQUE7SUFDakQsR0FBRyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsQ0FBQTtBQUNoQixDQUFDLENBQUEsQ0FBQyxDQUFBO0FBRUYsU0FBUyxpQkFBaUIsQ0FBQyxTQUFpQjtJQUUxQyxPQUFPLENBQUMsR0FBRyxDQUFDLHFCQUFxQixTQUFTLEVBQUUsQ0FBQyxDQUFBO0lBQzdDLE9BQU8sTUFBTSxDQUFDLFVBQVUsQ0FBQyxLQUFLLENBQUMsQ0FBQyxNQUFNLENBQUMsU0FBUyxDQUFDLENBQUMsTUFBTSxDQUFDLEtBQUssQ0FBQyxDQUFDO0FBQ2xFLENBQUM7QUFDWSxRQUFBLFdBQVcsR0FBRyxTQUFTLENBQUMsS0FBSyxDQUFDLFNBQVMsQ0FBQyxDQUFPLEdBQUcsRUFBRSxHQUFHLEVBQUUsRUFBRTtJQUN0RSxJQUFJLFNBQVMsR0FBRyxHQUFHLENBQUMsSUFBSSxDQUFDLGFBQWEsQ0FBQyxDQUFBO0lBQ3ZDLDBDQUEwQztJQUMxQyxJQUFJLFFBQVEsR0FBRyxpQkFBaUIsQ0FBQyxTQUFTLENBQUMsQ0FBQTtJQUMzQyxJQUFJLGFBQWEsR0FBRyxJQUFJLENBQUMsT0FBTyxDQUFDLFNBQVMsRUFBRSxjQUFjLENBQUMsQ0FBQTtJQUMzRCxJQUFJLENBQUMsRUFBRSxDQUFDLFVBQVUsQ0FBQyxhQUFhLENBQUMsRUFBRTtRQUNqQyxFQUFFLENBQUMsU0FBUyxDQUFDLGFBQWEsQ0FBQyxDQUFBO0tBQzVCO0lBQ0QsSUFBSSxVQUFVLEdBQUcsSUFBSSxDQUFDLE9BQU8sQ0FBQyxhQUFhLEVBQUUsR0FBRyxRQUFRLE1BQU0sQ0FBQyxDQUFDO0lBQ2hFLElBQUksRUFBRSxDQUFDLFVBQVUsQ0FBQyxVQUFVLENBQUMsRUFBRTtRQUM3QixPQUFPLENBQUMsR0FBRyxDQUFDLDJCQUEyQixRQUFRLEVBQUUsQ0FBQyxDQUFBO1FBQ2xELEdBQUcsQ0FBQyxTQUFTLENBQUMsY0FBYyxFQUFFLGlCQUFpQixDQUFDLENBQUE7UUFDaEQsR0FBRyxDQUFDLFNBQVMsQ0FBQyw2QkFBNkIsRUFBRSxHQUFHLENBQUMsQ0FBQTtRQUVqRCxHQUFHLENBQUMsUUFBUSxDQUFDLFVBQVUsQ0FBQyxDQUFBO1FBQ3hCLE9BQU87S0FDUjtJQUNELHdEQUF3RDtJQUN4RCxJQUFJLE1BQU0sR0FBRyxNQUFNLElBQUEsb0JBQUssRUFBQyxtREFBbUQsRUFBRTtRQUM1RSxNQUFNLEVBQUUsTUFBTTtRQUNkLElBQUksRUFBRSxlQUFlLFNBQVMsRUFBRTtRQUNoQyxPQUFPLEVBQUUsRUFBRSxjQUFjLEVBQUUsbUNBQW1DLEVBQUUsUUFBUSxFQUFFLGlCQUFpQixFQUFFO1FBQzdGLGtCQUFrQjtLQUNuQixDQUFDLENBQUE7SUFFRixJQUFJLFVBQVUsR0FBRyxNQUFNLE1BQU0sQ0FBQyxJQUFJLEVBQUUsQ0FBQztJQUdyQywrQ0FBK0M7SUFDL0MsRUFBRSxDQUFDLGFBQWEsQ0FBQyxVQUFVLEVBQUUsVUFBVSxDQUFDLENBQUE7SUFFeEMsR0FBRyxDQUFDLFNBQVMsQ0FBQyxjQUFjLEVBQUUsaUJBQWlCLENBQUMsQ0FBQTtJQUNoRCxHQUFHLENBQUMsU0FBUyxDQUFDLDZCQUE2QixFQUFFLEdBQUcsQ0FBQyxDQUFBO0lBQ2pELEdBQUcsQ0FBQyxJQUFJLENBQUMsVUFBVSxDQUFDLENBQUE7QUFDdEIsQ0FBQyxDQUFBLENBQUMsQ0FBQTtBQUNXLFFBQUEsSUFBSSxHQUFHLFNBQVMsQ0FBQyxLQUFLLENBQUMsU0FBUyxDQUFDLENBQU8sR0FBRyxFQUFFLElBQUksRUFBRSxFQUFFO0lBRWhFLElBQUksQ0FBQyxTQUFTLENBQUMsY0FBYyxFQUFFLGtCQUFrQixDQUFDLENBQUE7SUFDbEQsSUFBSSxDQUFDLFNBQVMsQ0FBQyw2QkFBNkIsRUFBRSxHQUFHLENBQUMsQ0FBQTtJQUNsRCxzQ0FBc0M7SUFDdEMsSUFBSSxRQUFRLEdBQUcsR0FBRyxDQUFDLElBQUksQ0FBQyxVQUFVLENBQUMsR0FBRyxDQUFDLENBQUMsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxJQUFJLENBQUMsU0FBUyxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUMsQ0FBQyxHQUFHLENBQUMsSUFBSSxDQUFBO0lBQzFFLE9BQU8sQ0FBQyxHQUFHLENBQUMsUUFBUSxDQUFDLENBQUE7SUFDckIsUUFBUSxHQUFHLENBQUMsTUFBTSxFQUFFO1FBQ2xCLEtBQUssS0FBSztZQUVSLElBQUksQ0FBQyxDQUFDLE1BQU0sUUFBUSxDQUFDLFlBQVksQ0FBQyxNQUFNLENBQUMsUUFBUSxDQUFDLENBQUMsRUFBRTtnQkFDbkQsSUFBSSxDQUFDLElBQUksQ0FBQyxXQUFXLFFBQVEsRUFBRSxDQUFDLENBQUE7YUFDakM7WUFDRCxJQUFJLElBQUksR0FBRyxNQUFNLFFBQVEsQ0FBQyxZQUFZLENBQUMsUUFBUSxDQUFDLFFBQVEsQ0FBQyxDQUFBO1lBQ3pELElBQUksQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLENBQUE7WUFDZixNQUFNO1FBQ1IsS0FBSyxNQUFNO1lBQ1QsSUFBSSxJQUFJLEdBQUcsT0FBTyxHQUFHLENBQUMsSUFBSSxJQUFJLFFBQVEsQ0FBQyxDQUFDLENBQUMsR0FBRyxDQUFDLElBQUksQ0FBQyxDQUFDLENBQUMsSUFBSSxDQUFDLFNBQVMsQ0FBQyxHQUFHLENBQUMsSUFBSSxDQUFDLENBQUE7WUFDNUUsSUFBSTtnQkFDRixJQUFJLENBQUMsSUFBSSxDQUFDLE1BQU0sUUFBUSxDQUFDLFlBQVksQ0FBQyxTQUFTLENBQUMsUUFBUSxFQUFFLElBQUksQ0FBQyxDQUFDLENBQUE7YUFDakU7WUFBQyxPQUFPLEdBQUcsRUFBRTtnQkFDWixJQUFJLENBQUMsSUFBSSxDQUFDLHVCQUF1QixJQUFJLENBQUMsU0FBUyxDQUFDLEdBQUcsQ0FBQyxFQUFFLENBQUMsQ0FBQTthQUN4RDtZQUNELE1BQU07UUFDUjtZQUNFLElBQUksQ0FBQyxJQUFJLENBQUMsa0JBQWtCLEdBQUcsQ0FBQyxNQUFNLEVBQUUsQ0FBQyxDQUFBO0tBQzVDO0FBRUgsQ0FBQyxDQUFBLENBQUMsQ0FBQTtBQUNXLFFBQUEsVUFBVSxHQUFHLFNBQVMsQ0FBQyxLQUFLLENBQUMsU0FBUyxDQUFDLENBQU8sR0FBRyxFQUFFLElBQUksRUFBRSxFQUFFO0lBRXRFLElBQUksQ0FBQyxTQUFTLENBQUMsY0FBYyxFQUFFLGtCQUFrQixDQUFDLENBQUE7SUFDbEQsSUFBSSxDQUFDLFNBQVMsQ0FBQyw2QkFBNkIsRUFBRSxHQUFHLENBQUMsQ0FBQTtJQUNsRCxzQ0FBc0M7SUFDdEMsSUFBSSxJQUFJLEdBQUcsSUFBSSxDQUFDLE9BQU8sQ0FBQyxTQUFTLEVBQUUsVUFBVSxFQUFFLEdBQUcsR0FBRyxHQUFHLENBQUMsSUFBSSxDQUFDLENBQUE7SUFDOUQsT0FBTyxDQUFDLEdBQUcsQ0FBQyxlQUFlLElBQUksU0FBUyxDQUFDLENBQUE7SUFDekMsUUFBUSxHQUFHLENBQUMsTUFBTSxFQUFFO1FBQ2xCLEtBQUssS0FBSztZQUNSLElBQUksQ0FBQyxFQUFFLENBQUMsVUFBVSxDQUFDLElBQUksQ0FBQyxFQUFFO2dCQUN4QixJQUFJLENBQUMsSUFBSSxDQUFDLE9BQU8sQ0FBQyxDQUFBO2dCQUNsQixPQUFPO2FBQ1I7WUFDRCxJQUFJLENBQUMsSUFBSSxDQUFDLE1BQU0sQ0FBQyxDQUFBO1lBQ2pCLE1BQU07WUFFTixNQUFNO1FBQ1I7WUFDRSxJQUFJLENBQUMsSUFBSSxDQUFDLGtCQUFrQixHQUFHLENBQUMsTUFBTSxFQUFFLENBQUMsQ0FBQTtLQUM1QztBQUVILENBQUMsQ0FBQSxDQUFDLENBQUE7QUFDVyxRQUFBLFFBQVEsR0FBRyxTQUFTLENBQUMsS0FBSyxDQUFDLFNBQVMsQ0FBQyxDQUFPLEdBQUcsRUFBRSxJQUFJLEVBQUUsRUFBRTtJQUNwRSxJQUFJLEtBQUssR0FBRyxNQUFNLFFBQVEsQ0FBQyxZQUFZLENBQUMsRUFBRSxDQUFDLENBQUE7SUFDM0MsSUFBSSxDQUFDLFNBQVMsQ0FBQyxjQUFjLEVBQUUsa0JBQWtCLENBQUMsQ0FBQTtJQUNsRCxJQUFJLENBQUMsU0FBUyxDQUFDLDZCQUE2QixFQUFFLEdBQUcsQ0FBQyxDQUFBO0lBRWxELElBQUksQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLFNBQVMsQ0FBQyxLQUFLLENBQUMsQ0FBQyxDQUFBO0FBQ2xDLENBQUMsQ0FBQSxDQUFDLENBQUE7QUFDVyxRQUFBLFNBQVMsR0FBRyxTQUFTLENBQUMsS0FBSyxDQUFDLFNBQVMsQ0FBQyxDQUFPLEdBQUcsRUFBRSxHQUFHLEVBQUUsRUFBRTtJQUNwRSxJQUFBLG9CQUFJLEVBQUMsaUNBQWlDLEVBQUUsQ0FBQyxHQUFHLEVBQUUsTUFBTSxFQUFFLE1BQU0sRUFBRSxFQUFFO1FBQzlELElBQUksR0FBRyxFQUFFO1lBQ1AsT0FBTyxDQUFDLEdBQUcsQ0FBQyxLQUFLLEVBQUUsR0FBRyxDQUFDLENBQUE7WUFDdkIsR0FBRyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsU0FBUyxDQUFDLEVBQUUsTUFBTSxFQUFFLE9BQU8sRUFBRSxLQUFLLEVBQUUsR0FBRyxFQUFFLENBQUMsQ0FBQyxDQUFBO1lBQ3pELE9BQU87U0FDUjtRQUNELElBQUksTUFBTSxFQUFFO1lBQ1YsT0FBTyxDQUFDLEdBQUcsQ0FBQyxRQUFRLEVBQUUsTUFBTSxDQUFDLENBQUE7WUFDN0IsR0FBRyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsU0FBUyxDQUFDLEVBQUUsTUFBTSxFQUFFLFVBQVUsRUFBRSxLQUFLLEVBQUUsTUFBTSxFQUFFLENBQUMsQ0FBQyxDQUFBO1lBQy9ELE9BQU07U0FDUDtRQUNELE9BQU8sQ0FBQyxHQUFHLENBQUMsU0FBUyxFQUFFLE1BQU0sQ0FBQyxDQUFBO1FBQzlCLEdBQUcsQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLFNBQVMsQ0FBQyxFQUFFLE1BQU0sRUFBRSxTQUFTLEVBQUUsS0FBSyxFQUFFLE1BQU0sRUFBRSxDQUFDLENBQUMsQ0FBQTtJQUNoRSxDQUFDLENBQUMsQ0FBQTtBQUNKLENBQUMsQ0FBQSxDQUFDLENBQUEifQ==
-
-/***/ }),
-
-/***/ "./srcFunctions/common/FBF_Helpers.ts":
-/*!********************************************!*\
-  !*** ./srcFunctions/common/FBF_Helpers.ts ***!
-  \********************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+                    /***/
+                    "./srcFunctions/WPFunctions.ts":
+                    /*!*************************************!*\
+                      !*** ./srcFunctions/WPFunctions.ts ***!
+                      \*************************************/
+                    /***/
+                        (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.replaceAllInString = exports.isAllTrue = exports.XmlToJson = exports.concactinate = exports.flatten = exports.ensureFBF_Helpers = exports.promiseDefault = exports.isNode = void 0;
-const Xml2JS = __webpack_require__(/*! xml2js */ "xml2js").parseString;
-function isNode() {
-    return typeof window == 'undefined';
-}
-exports.isNode = isNode;
-function promiseDefault(prom, defaultValue) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((acc) => {
-            prom.then(acc).catch(e => acc(defaultValue));
-        });
-    });
-}
-exports.promiseDefault = promiseDefault;
-// export function ObjectMap<A,B>(input: A, transform: <k extends keyof A>()=>B): B {
-// return null
-// }
-Array.prototype.forEachAsync = function (onEach) {
-    return __awaiter(this, void 0, void 0, function* () {
-        for (let i = 0; i < this.length; i++) {
-            if ((yield onEach(this[i], i, this)) == 'BREAK') {
-                break;
-            }
-        }
-    });
-};
-Map.prototype.keysAsArray = function () {
-    let ths = this;
-    let out = [];
-    for (let key of ths.keys()) {
-        out.push(key);
-    }
-    return out;
-};
-Array.prototype.mapOrDrop = function (shouldKeep) {
-    let ths = this;
-    let out = [];
-    for (let i = 0; i < ths.length; i++) {
-        let fresh = shouldKeep(this[i], i);
-        if (fresh == 'DROP') {
-            // console.log(`Dropping ${i}`,this[i])
-        }
-        else {
-            out.push(fresh);
-        }
-    }
-    return out;
-};
-Map.prototype.getWithDefault = function (key, defaultValue) {
-    let ths = this;
-    if (!ths.has(key)) {
-        ths.set(key, defaultValue(key));
-    }
-    return ths.get(key);
-};
-Array.prototype.pushAll = function (stuff) {
-    if (Array.isArray(stuff)) {
-        for (let item of stuff) {
-            this.push(item);
-        }
-    }
-    else {
-        this.push(stuff);
-    }
-};
-String.prototype.isBoolean = function () {
-    return this.toLowerCase() == 'true' || this.toLowerCase() == 'false';
-};
-String.prototype.isNumber = function () {
-    return !Number.isNaN(Number(this));
-};
-// if (typeof Map.prototype.toArray == 'undefined') {
-//     console.log(`Shimming Map.toArray`)
-//     Map.prototype.toArray = function <K, V>() {
-//         let ths: Map<K, V> = this
-//         let out: Array<[K, V]> = []
-//         for (let key of ths.keys()) {
-//             out.push([key, ths.get(key)]);
-//         }
-//         return out
-//     }
-// }
-function ensureFBF_Helpers() {
-    console.log();
-}
-exports.ensureFBF_Helpers = ensureFBF_Helpers;
-function flatten(arr) {
-    let out = [];
-    for (let i = 0; i < arr.length; i++) {
-        for (let j = 0; j < arr[i].length; j++) {
-            out.push(arr[i][j]);
-        }
-    }
-    return out;
-}
-exports.flatten = flatten;
-function concactinate(a, b) {
-    let out = [];
-    a.forEach((aa) => {
-        out.push(aa);
-    });
-    b.forEach((bb) => {
-        out.push(bb);
-    });
-    return out;
-}
-exports.concactinate = concactinate;
-function XmlToJson(xml) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((acc, rej) => {
-            Xml2JS(`<data>${xml}</data>`, (err, value) => {
-                if (err) {
-                    rej(err);
-                }
-                else {
-                    // console.log('cleaning',value)
-                    // let result = cleanXmlToJson(value) as XmlElement;
-                    acc(value.data);
-                }
-            });
-        });
-    });
-}
-exports.XmlToJson = XmlToJson;
-if (typeof String.prototype.replaceAll == 'undefined') {
-    String.prototype.replaceAll = function (a, b) {
-        return this.split(a).join(b);
-    };
-}
-function isAllTrue(bools) {
-    for (let i = 0; i < bools.length; i++) {
-        if (bools[i]) {
-            return true;
-        }
-    }
-    return false;
-}
-exports.isAllTrue = isAllTrue;
-function replaceAllInString(target, a, b) {
-    return target.split(a).join(b);
-}
-exports.replaceAllInString = replaceAllInString;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiRkJGX0hlbHBlcnMuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmNGdW5jdGlvbnMvY29tbW9uL0ZCRl9IZWxwZXJzLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7OztBQUVBLE1BQU0sTUFBTSxHQUFHLE9BQU8sQ0FBQyxRQUFRLENBQUMsQ0FBQyxXQUFXLENBQUM7QUF1QjdDLFNBQWdCLE1BQU07SUFDbEIsT0FBTyxPQUFPLE1BQU0sSUFBSSxXQUFXLENBQUE7QUFDdkMsQ0FBQztBQUZELHdCQUVDO0FBQ0QsU0FBc0IsY0FBYyxDQUFJLElBQWdCLEVBQUUsWUFBZTs7UUFDckUsT0FBTyxJQUFJLE9BQU8sQ0FBQyxDQUFDLEdBQUcsRUFBRSxFQUFFO1lBQ3ZCLElBQUksQ0FBQyxJQUFJLENBQUMsR0FBRyxDQUFDLENBQUMsS0FBSyxDQUFDLENBQUMsQ0FBQyxFQUFFLENBQUMsR0FBRyxDQUFDLFlBQVksQ0FBQyxDQUFDLENBQUE7UUFDaEQsQ0FBQyxDQUFDLENBQUE7SUFDTixDQUFDO0NBQUE7QUFKRCx3Q0FJQztBQUNELHFGQUFxRjtBQUNyRixjQUFjO0FBQ2QsSUFBSTtBQUNKLEtBQUssQ0FBQyxTQUFTLENBQUMsWUFBWSxHQUFHLFVBQW1CLE1BQTBFOztRQUN4SCxLQUFLLElBQUksQ0FBQyxHQUFHLENBQUMsRUFBRSxDQUFDLEdBQUcsSUFBSSxDQUFDLE1BQU0sRUFBRSxDQUFDLEVBQUUsRUFBRTtZQUNsQyxJQUFJLENBQUEsTUFBTSxNQUFNLENBQUMsSUFBSSxDQUFDLENBQUMsQ0FBQyxFQUFFLENBQUMsRUFBRSxJQUFJLENBQUMsS0FBSSxPQUFPLEVBQUU7Z0JBQzNDLE1BQU07YUFDVDtTQUNKO0lBQ0wsQ0FBQztDQUFBLENBQUE7QUFDRCxHQUFHLENBQUMsU0FBUyxDQUFDLFdBQVcsR0FBRztJQUN4QixJQUFJLEdBQUcsR0FBRyxJQUFpQixDQUFBO0lBQzNCLElBQUksR0FBRyxHQUFRLEVBQUUsQ0FBQTtJ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
+                        var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+                            if (k2 === undefined) k2 = k;
+                            Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+                        }) : (function(o, m, k, k2) {
+                            if (k2 === undefined) k2 = k;
+                            o[k2] = m[k];
+                        }));
+                        var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+                            Object.defineProperty(o, "default", { enumerable: true, value: v });
+                        }) : function(o, v) {
+                            o["default"] = v;
+                        });
+                        var __importStar = (this && this.__importStar) || function(mod) {
+                            if (mod && mod.__esModule) return mod;
+                            var result = {};
+                            if (mod != null)
+                                for (var k in mod)
+                                    if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+                            __setModuleDefault(result, mod);
+                            return result;
+                        };
+                        var __awaiter = (this && this.__awaiter) || function(thisArg, _arguments, P, generator) {
+                            function adopt(value) { return value instanceof P ? value : new P(function(resolve) { resolve(value); }); }
+                            return new(P || (P = Promise))(function(resolve, reject) {
+                                function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
 
-/***/ }),
+                                function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
 
-/***/ "./srcFunctions/common/WonderData.ts":
-/*!*******************************************!*\
-  !*** ./srcFunctions/common/WonderData.ts ***!
-  \*******************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+                                function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+                                step((generator = generator.apply(thisArg, _arguments || [])).next());
+                            });
+                        };
+                        var __importDefault = (this && this.__importDefault) || function(mod) {
+                            return (mod && mod.__esModule) ? mod : { "default": mod };
+                        };
+                        Object.defineProperty(exports, "__esModule", ({ value: true }));
+                        exports.HashTypes = exports.Diseases = exports.DataExists = exports.Data = exports.WonderProxy = exports.RonaTest = exports.ReqTest = exports.listener = void 0;
+                        const functions = __importStar(__webpack_require__( /*! firebase-functions */ "firebase-functions"));
+                        const node_fetch_1 = __importDefault(__webpack_require__( /*! node-fetch */ "node-fetch"));
+                        const fs = __importStar(__webpack_require__( /*! fs */ "fs"));
+                        const path = __importStar(__webpack_require__( /*! path */ "path"));
+                        __webpack_require__( /*! ./common/FBF_Helpers */ "./srcFunctions/common/FBF_Helpers.ts");
+                        const WonderData_1 = __webpack_require__( /*! ./common/WonderData */ "./srcFunctions/common/WonderData.ts");
+                        const child_process_1 = __webpack_require__( /*! child_process */ "child_process");
+                        const crypto = __importStar(__webpack_require__( /*! crypto */ "crypto"));
+                        const WonderDataImports_1 = __webpack_require__( /*! ./common/WonderData/WonderDataImports */ "./srcFunctions/common/WonderData/WonderDataImports.ts");
+                        const app_1 = __webpack_require__( /*! firebase-admin/app */ "firebase-admin/app");
+                        const FirebaseStorage = __importStar(__webpack_require__( /*! firebase-admin/storage */ "firebase-admin/storage"));
+                        // // Start writing Firebase Functions
+                        // // https://firebase.google.com/docs/functions/typescript
+                        const firebaseAdminCreds_1 = __webpack_require__( /*! ./firebaseAdminCreds */ "./srcFunctions/firebaseAdminCreds.ts");
+                        (0, app_1.initializeApp)({
+                            credential: (0, app_1.cert)(firebaseAdminCreds_1.FirebaseServiceAccountCreds),
+                            storageBucket: 'gs://gdsn3-22.appspot.com'
+                        });
+                        let firebaseStorage = FirebaseStorage.getStorage();
+                        let bucket = firebaseStorage.bucket();
+                        //
+                        console.log('test');
+                        let database = new WonderDataImports_1.Database({
+                            readFile(filePath) {
+                                return __awaiter(this, void 0, void 0, function*() {
+                                    if (filePath.startsWith('./')) {
+                                        filePath = filePath.substring(2);
+                                    }
+                                    if (filePath.startsWith('/')) {
+                                        filePath = filePath.substring(1);
+                                    }
+                                    let absPath = path.resolve(__dirname, `../data/`, filePath);
+                                    let reference = bucket.file("data/" + filePath);
+                                    if (!(yield reference.exists())) { //(!fs.existsSync(absPath)) {
+                                        return { error: `File doesn't exist: ${absPath}` };
+                                    }
+                                    // let data = await fs.promises.readFile(absPath)
+                                    // return JSON.parse(data.toString())
+                                    let [buffer] = yield reference.download();
+                                    let result = buffer.toString();
+                                    return JSON.parse(result);
+                                });
+                            },
+                            writeFile(filePath, data) {
+                                return __awaiter(this, void 0, void 0, function*() {
+                                    if (filePath.startsWith('./')) {
+                                        filePath = filePath.substring(2);
+                                    }
+                                    if (filePath.startsWith('/')) {
+                                        filePath = filePath.substring(1);
+                                    }
+                                    let absPath = path.resolve(__dirname, `../data/`, filePath);
+                                    let reference = bucket.file("data/" + filePath);
+                                    let buffer = Buffer.from(typeof data == 'string' ? data : JSON.stringify(data), 'utf-8');
+                                    return new Promise((acc) => {
+                                        let blobStream = reference.createWriteStream({
+                                            resumable: false
+                                        });
+                                        blobStream.on('finish', () => {
+                                                acc("Success");
+                                            })
+                                            .on('error', (e) => {
+                                                acc(`Unable to upload file: ${JSON.stringify(e)}`);
+                                            })
+                                            .end(buffer);
+                                    });
+                                    // await uploadFirebaseFile(typeof data == 'string' ? data : JSON.stringify(data), filePath)//await fs.promises.writeFile(absPath, )
+                                    // return 'success';
+                                });
+                            },
+                            exists(filePath) {
+                                return __awaiter(this, void 0, void 0, function*() {
+                                    if (filePath.startsWith('./')) {
+                                        filePath = filePath.substring(2);
+                                    }
+                                    if (filePath.startsWith('/')) {
+                                        filePath = filePath.substring(1);
+                                    }
+                                    let reference = bucket.file("data/" + filePath);
+                                    return (yield reference.exists())[0]; //firebaseFileExists(pathName)// return fs.existsSync(absPath)
+                                });
+                            }
+                        });
+                        exports.listener = functions.https.onRequest((req, res) => __awaiter(void 0, void 0, void 0, function*() {
+                            res.setHeader('Content-Type', 'application/xml');
+                            let exampleParams = WonderData_1.ExampleRequest.replace('</request-parameters>', '').replace('<request-parameters>', '').replaceAll('<value/>', '<value></value>').replaceAll('<parameter>', '').replaceAll('</name>', '').replaceAll('</value>', '').replaceAll('<name>', '').split('</parameter>').map(str => {
+                                let tmp = str.split('<value>');
+                                let name = tmp[0];
+                                let rest = tmp.slice(1);
+                                return [name, rest];
+                            });
+                            let reqTestParams = new WonderData_1.WonderRequest().groupBy('Year').groupBy('Race').addParam('F_D76.V25', WonderData_1.WonderQueryParam_Util.All).toParamMap();
+                            let requestParams = new Map();
+                            let inconsistencies = [];
+                            exampleParams.forEach((value) => {
+                                if (!reqTestParams.has(value[0])) {
+                                    inconsistencies.push(`Request missing ${value[0]}`);
+                                }
+                                requestParams.set(value[0], value[1]);
+                            });
+                            for (let exParamName in reqTestParams.keys()) {
+                                if (!requestParams.has(exParamName)) {
+                                    inconsistencies.push(`Examples missing ${exParamName}`);
+                                }
+                            }
+                            res.setHeader('Content-Type', 'application/json');
+                            res.send(JSON.stringify(inconsistencies));
+                        }));
+                        exports.ReqTest = functions.https.onRequest((req, res) => __awaiter(void 0, void 0, void 0, function*() {
+                            // res.setHeader('Content-Type', 'application/xml')
+                            // res.send(new WonderRequest().groupBy('Year').addParam('M_1', 'D76.M1').toString())
+                            res.send(yield database.fileAccessor.writeFile("test.json", { myBigData: "Stuff and things" }));
+                        }));
+                        exports.RonaTest = functions.https.onRequest((req, res) => __awaiter(void 0, void 0, void 0, function*() {
+                            let data = yield new WonderData_1.WonderRequest().groupBy('Year').groupBy('AgeGroups').filterByYear(['1999', '2001']).request();
+                            let exportPath = path.resolve(__dirname, '../data/exampleResponse.xml');
+                            console.log(`saving to file${exportPath}`);
+                            fs.writeFileSync(exportPath, JSON.stringify(data));
+                            console.log('saved');
+                            res.setHeader('Content-Type', 'application/json');
+                            res.setHeader('Access-Control-Allow-Origin', '*');
+                            res.send(data);
+                        }));
+
+                        function requestToFileName(fetchBody) {
+                            console.log(`Req to file name\n${fetchBody}`);
+                            return crypto.createHash('md5').update(fetchBody).digest("hex");
+                        }
+                        exports.WonderProxy = functions.https.onRequest((req, res) => __awaiter(void 0, void 0, void 0, function*() {
+                            let fetchBody = req.body['request_xml'];
+                            // console.log(`Fetch body: ${fetchBody}`)
+                            let fileName = requestToFileName(fetchBody);
+                            let fileDirectory = path.resolve(__dirname, `../data/xml/`);
+                            if (!fs.existsSync(fileDirectory)) {
+                                fs.mkdirSync(fileDirectory);
+                            }
+                            let exportPath = path.resolve(fileDirectory, `${fileName}.xml`);
+                            if (fs.existsSync(exportPath)) {
+                                console.log(`Using cache for request ${fileName}`);
+                                res.setHeader('Content-Type', 'application/xml');
+                                res.setHeader('Access-Control-Allow-Origin', '*');
+                                res.sendFile(exportPath);
+                                return;
+                            }
+                            // console.log(`Sending query to wonder:\n${fetchBody}`)
+                            let result = yield(0, node_fetch_1.default)(`https://wonder.cdc.gov/controller/datarequest/D76`, {
+                                method: 'POST',
+                                body: `request_xml=${fetchBody}`,
+                                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/xml' },
+                                // mode: 'no-cors'
+                            });
+                            let resultText = yield result.text();
+                            // console.log(`saving to file: ${exportPath}`)
+                            fs.writeFileSync(exportPath, resultText);
+                            res.setHeader('Content-Type', 'application/xml');
+                            res.setHeader('Access-Control-Allow-Origin', '*');
+                            res.send(resultText);
+                        }));
+                        exports.Data = functions.https.onRequest((req, resp) => __awaiter(void 0, void 0, void 0, function*() {
+                            resp.setHeader('Content-Type', 'application/json');
+                            resp.setHeader('Access-Control-Allow-Origin', '*');
+                            // let name = req.path.startsWith('.')
+                            let filePath = req.path.startsWith("/") ? req.path.substring(1) : req.path;
+                            console.log(filePath);
+                            switch (req.method) {
+                                case 'GET':
+                                    if (!(yield database.fileAccessor.exists(filePath))) {
+                                        resp.send(`No file ${filePath}`);
+                                    }
+                                    let file = yield database.fileAccessor.readFile(filePath);
+                                    resp.send(file);
+                                    break;
+                                case 'POST':
+                                    let data = typeof req.body == 'string' ? req.body : JSON.stringify(req.body);
+                                    try {
+                                        resp.send(yield database.fileAccessor.writeFile(filePath, data));
+                                    } catch (err) {
+                                        resp.send(`Failed to save data ${JSON.stringify(err)}`);
+                                    }
+                                    break;
+                                default:
+                                    resp.send(`Unknown method ${req.method}`);
+                            }
+                        }));
+                        exports.DataExists = functions.https.onRequest((req, resp) => __awaiter(void 0, void 0, void 0, function*() {
+                            resp.setHeader('Content-Type', 'application/json');
+                            resp.setHeader('Access-Control-Allow-Origin', '*');
+                            // let name = req.path.startsWith('.')
+                            let file = path.resolve(__dirname, '../data/', '.' + req.path);
+                            console.log(`Checking if ${file} exists`);
+                            switch (req.method) {
+                                case 'GET':
+                                    if (!fs.existsSync(file)) {
+                                        resp.send(`false`);
+                                        return;
+                                    }
+                                    resp.send('true');
+                                    break;
+                                    break;
+                                default:
+                                    resp.send(`Unknown method ${req.method}`);
+                            }
+                        }));
+                        exports.Diseases = functions.https.onRequest((req, resp) => __awaiter(void 0, void 0, void 0, function*() {
+                            let codes = yield database.pullIcdCodes(10);
+                            resp.setHeader('Content-Type', 'application/json');
+                            resp.setHeader('Access-Control-Allow-Origin', '*');
+                            resp.send(JSON.stringify(codes));
+                        }));
+                        exports.HashTypes = functions.https.onRequest((req, res) => __awaiter(void 0, void 0, void 0, function*() {
+                            (0, child_process_1.exec)('openssl list -digest-algorithms', (err, stdout, stderr) => {
+                                if (err) {
+                                    console.log('err', err);
+                                    res.send(JSON.stringify({ status: 'Error', error: err }));
+                                    return;
+                                }
+                                if (stderr) {
+                                    console.log('stderr', stderr);
+                                    res.send(JSON.stringify({ status: 'STDError', error: stderr }));
+                                    return;
+                                }
+                                console.log('success', stdout);
+                                res.send(JSON.stringify({ status: 'Success', value: stdout }));
+                            });
+                        }));
+                        //# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiV1BGdW5jdGlvbnMuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi9zcmNGdW5jdGlvbnMvV1BGdW5jdGlvbnMudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQUFBLDhEQUFnRDtBQUNoRCw0REFBOEI7QUFFOUIsdUNBQXdCO0FBQ3hCLDJDQUE0QjtBQUM1QixnQ0FBNkI7QUFDN0Isb0RBQW9HO0FBQ3BHLGlEQUFvQztBQUNwQywrQ0FBZ0M7QUFDaEMsNkVBQWlFO0FBQ2pFLDRDQUF5RTtBQUN6RSx3RUFBMEQ7QUFDMUQsc0NBQXNDO0FBQ3RDLDJEQUEyRDtBQUMzRCw2REFBbUU7QUFFbkUsSUFBQSxtQkFBYSxFQUFDO0lBQ1osVUFBVSxFQUFFLElBQUEsVUFBSSxFQUFDLGdEQUFrQyxDQUFDO0lBQ3BELGFBQWEsRUFBRSwyQkFBMkI7Q0FDM0MsQ0FBQyxDQUFDO0FBQ0gsSUFBSSxlQUFlLEdBQUcsZUFBZSxDQUFDLFVBQVUsRUFBRSxDQUFBO0FBQ2xELElBQUksTUFBTSxHQUFHLGVBQWUsQ0FBQyxNQUFNLEVBQUUsQ0FBQTtBQUVyQyxFQUFFO0FBQ0YsT0FBTyxDQUFDLEdBQUcsQ0FBQyxNQUFNLENBQUMsQ0FBQTtBQUVuQixJQUFJLFFBQVEsR0FBRyxJQUFJLDRCQUFRLENBQUM7SUFDcEIsUUFBUSxDQUFJLFFBQVE7O1lBQ3hCLElBQUksUUFBUSxDQUFDLFVBQVUsQ0FBQyxJQUFJLENBQUMsRUFBRTtnQkFDN0IsUUFBUSxHQUFHLFFBQVEsQ0FBQyxTQUFTLENBQUMsQ0FBQyxDQUFDLENBQUE7YUFDakM7WUFDRCxJQUFJLFFBQVEsQ0FBQyxVQUFVLENBQUMsR0FBRyxDQUFDLEVBQUU7Z0JBQzVCLFFBQVEsR0FBRyxRQUFRLENBQUMsU0FBUyxDQUFDLENBQUMsQ0FBQyxDQUFBO2FBQ2pDO1lBQ0QsSUFBSSxPQUFPLEdBQUcsSUFBSSxDQUFDLE9BQU8sQ0FBQyxTQUFTLEVBQUUsVUFB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
+
+                        /***/
+                    }),
+
+                    /***/
+                    "./srcFunctions/common/FBF_Helpers.ts":
+                    /*!********************************************!*\
+                      !*** ./srcFunctions/common/FBF_Helpers.ts ***!
+                      \********************************************/
+                    /***/
+                        (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DataChannelStreaming = exports.DataChannel = exports.Disease = exports.ExampleRequest = exports.ConsumableLinkedList = exports.WonderRequest = exports.DeWonder = exports.AllWonderParams = exports.WonderQueryParam_GroupBy = exports.WonderQueryParam_Race = exports.WonderQueryParam_Gender = exports.WonderQueryParam_Measure = exports.WonderQueryParam_AgeGroup = exports.WonderQueryParam_Include = exports.WonderQueryParam = exports.WonderQueryParam_Util = exports.parseYearMonthString = exports.isYearMonthString = exports.MonthEnum = exports.YearStrings = exports.MonthNames = exports.isWQP_None = void 0;
-// import * as XMLParser from 'xml2js'
-if (true) {
-    global.fetch = __webpack_require__(/*! node-fetch */ "node-fetch");
-}
-const bristolboard_1 = __webpack_require__(/*! bristolboard */ "bristolboard");
-const sorted_btree_1 = __importDefault(__webpack_require__(/*! sorted-btree */ "sorted-btree"));
-const FBF_Helpers_1 = __webpack_require__(/*! ./FBF_Helpers */ "./srcFunctions/common/FBF_Helpers.ts");
-const WonderDataImports_1 = __webpack_require__(/*! ./WonderData/WonderDataImports */ "./srcFunctions/common/WonderData/WonderDataImports.ts");
-// export type WonderQueryParamName = (keyof typeof WonderQueryParam) 
-function isWQP_None(param) {
-    return (param == 'None') || (param == WonderQueryParam_Util.None);
-}
-exports.isWQP_None = isWQP_None;
-var MonthNames;
-(function (MonthNames) {
-    MonthNames[MonthNames["Jan"] = 1] = "Jan";
-    MonthNames[MonthNames["Feb"] = 2] = "Feb";
-    MonthNames[MonthNames["Mar"] = 3] = "Mar";
-    MonthNames[MonthNames["Apr"] = 4] = "Apr";
-    MonthNames[MonthNames["May"] = 5] = "May";
-    MonthNames[MonthNames["Jun"] = 6] = "Jun";
-    MonthNames[MonthNames["Jul"] = 7] = "Jul";
-    MonthNames[MonthNames["Aug"] = 8] = "Aug";
-    MonthNames[MonthNames["Sep"] = 9] = "Sep";
-    MonthNames[MonthNames["Oct"] = 10] = "Oct";
-    MonthNames[MonthNames["Nov"] = 11] = "Nov";
-    MonthNames[MonthNames["Dec"] = 12] = "Dec";
-})(MonthNames = exports.MonthNames || (exports.MonthNames = {}));
-function YearStrings(start = 1999, end = 2020) {
-    let out = [];
-    for (let i = start; i <= end; i++) {
-        out.push(`${i}`);
-    }
-    return out;
-}
-exports.YearStrings = YearStrings;
-var MonthEnum;
-(function (MonthEnum) {
-    MonthEnum[MonthEnum["January"] = 0] = "January";
-    MonthEnum[MonthEnum["February"] = 1] = "February";
-    MonthEnum[MonthEnum["March"] = 2] = "March";
-    MonthEnum[MonthEnum["April"] = 3] = "April";
-    MonthEnum[MonthEnum["May"] = 4] = "May";
-    MonthEnum[MonthEnum["June"] = 5] = "June";
-    MonthEnum[MonthEnum["July"] = 6] = "July";
-    MonthEnum[MonthEnum["August"] = 7] = "August";
-    MonthEnum[MonthEnum["September"] = 8] = "September";
-    MonthEnum[MonthEnum["October"] = 9] = "October";
-    MonthEnum[MonthEnum["November"] = 10] = "November";
-    MonthEnum[MonthEnum["December"] = 11] = "December";
-})(MonthEnum = exports.MonthEnum || (exports.MonthEnum = {}));
-function isYearMonthString(str) {
-    return str.split('-').length == 2;
-}
-exports.isYearMonthString = isYearMonthString;
-function parseYearMonthString(str) {
-    let parts = str.split('-');
-    switch (parts.length) {
-        case 0:
-            return null;
-        case 1:
-            return [parts[0], -1];
-        case 2:
-            return [parts[0], MonthEnum[parts[1]]];
-    }
-}
-exports.parseYearMonthString = parseYearMonthString;
-var WonderQueryParam_Util;
-(function (WonderQueryParam_Util) {
-    WonderQueryParam_Util["None"] = "*None*";
-    WonderQueryParam_Util["All"] = "*All*";
-})(WonderQueryParam_Util = exports.WonderQueryParam_Util || (exports.WonderQueryParam_Util = {}));
-var WonderQueryParam;
-(function (WonderQueryParam) {
-    //FIV
-    WonderQueryParam["YearAndMonth"] = "D76.V1";
-})(WonderQueryParam = exports.WonderQueryParam || (exports.WonderQueryParam = {}));
-var WonderQueryParam_Include;
-(function (WonderQueryParam_Include) {
-    WonderQueryParam_Include["YearAndMonth"] = "D76.V1";
-    WonderQueryParam_Include["CensusRegions"] = "D76.V10";
-    WonderQueryParam_Include["ICD10Codes"] = "D76.V2";
-    WonderQueryParam_Include["HHSRegions"] = "D76.V27";
-    WonderQueryParam_Include["StatesAndCounties"] = "D76.V9";
-})(WonderQueryParam_Include = exports.WonderQueryParam_Include || (exports.WonderQueryParam_Include = {}));
-var WonderQueryParam_AgeGroup;
-(function (WonderQueryParam_AgeGroup) {
-    WonderQueryParam_AgeGroup["TenYear"] = "D76.V5";
-    WonderQueryParam_AgeGroup["FiveYear"] = "D76.V51";
-    WonderQueryParam_AgeGroup["SingleYear"] = "D76.V52";
-    WonderQueryParam_AgeGroup["Infant"] = "D76.V6";
-})(WonderQueryParam_AgeGroup = exports.WonderQueryParam_AgeGroup || (exports.WonderQueryParam_AgeGroup = {}));
-var WonderQueryParam_Measure;
-(function (WonderQueryParam_Measure) {
-    WonderQueryParam_Measure["Deaths"] = "D76.M1";
-    WonderQueryParam_Measure["Population"] = "D76.M2";
-    WonderQueryParam_Measure["CrudeRate"] = "D76.M3";
-    WonderQueryParam_Measure["CrudeRateStandardError"] = "D76.M31";
-    WonderQueryParam_Measure["CrudeRate95ConfidenceInterval"] = "D76.M32";
-    WonderQueryParam_Measure["AgeAdjustedRate"] = "D76.M4";
-    WonderQueryParam_Measure["AgeAdjustedRateStandardError"] = "D76.M41";
-    WonderQueryParam_Measure["AgeAdjustedRateConfidenceInterval"] = "D76.M42";
-    WonderQueryParam_Measure["PercentOfTotalDeaths"] = "D76.M9";
-})(WonderQueryParam_Measure = exports.WonderQueryParam_Measure || (exports.WonderQueryParam_Measure = {}));
-var WonderQueryParam_Gender;
-(function (WonderQueryParam_Gender) {
-    WonderQueryParam_Gender["Male"] = "M";
-    WonderQueryParam_Gender["Female"] = "F";
-})(WonderQueryParam_Gender = exports.WonderQueryParam_Gender || (exports.WonderQueryParam_Gender = {}));
-var WonderQueryParam_Race;
-(function (WonderQueryParam_Race) {
-    WonderQueryParam_Race["HispanicOrLatino"] = "2135-2";
-    WonderQueryParam_Race["NotHispanicOrLatino"] = "2186-2";
-    WonderQueryParam_Race["NotStated"] = "NS";
-    WonderQueryParam_Race["AmericanIndianOrAlaskaNative"] = "1002-5";
-    WonderQueryParam_Race["AsianOrPacificIslander"] = "A-PI";
-    WonderQueryParam_Race["Black"] = "2054-5";
-    WonderQueryParam_Race["White"] = "2106-3";
-})(WonderQueryParam_Race = exports.WonderQueryParam_Race || (exports.WonderQueryParam_Race = {}));
-var WonderQueryParam_GroupBy;
-(function (WonderQueryParam_GroupBy) {
-    WonderQueryParam_GroupBy["CensusRegion"] = "D76.V10-level1";
-    WonderQueryParam_GroupBy["CensusDivision"] = "D76.V10-level2";
-    WonderQueryParam_GroupBy["HHSRegion"] = "D76.V27-level1";
-    WonderQueryParam_GroupBy["State"] = "D76.V9-level1";
-    WonderQueryParam_GroupBy["County"] = "D76.V9-level2";
-    WonderQueryParam_GroupBy["Urbanization2013"] = "D76.V19";
-    WonderQueryParam_GroupBy["Urbanization2006"] = "D76.V11";
-    WonderQueryParam_GroupBy["AgeGroups"] = "D76.V5";
-    WonderQueryParam_GroupBy["Gender"] = "D76.V7";
-    WonderQueryParam_GroupBy["HispanicOrigin"] = "D76.V17";
-    WonderQueryParam_GroupBy["Race"] = "D76.V8";
-    //timeThere 
-    WonderQueryParam_GroupBy["Year"] = "D76.V1-level1";
-    WonderQueryParam_GroupBy["Month"] = "D76.V1-level2";
-    WonderQueryParam_GroupBy["Weekday"] = "D76.V24";
-    WonderQueryParam_GroupBy["Autopsy"] = "D76.V20";
-    WonderQueryParam_GroupBy["PlaceofDeath"] = "D76.V21";
-    WonderQueryParam_GroupBy["ICD10"] = "D76.V2";
-    WonderQueryParam_GroupBy["LeadingCausesofDeath"] = "D76.V28";
-    WonderQueryParam_GroupBy["LeadingCausesofDeathInfants"] = "D76.V29";
-    WonderQueryParam_GroupBy["ICDChapter"] = "D76.V2-level1";
-    WonderQueryParam_GroupBy["ICDSubChapter"] = "D76.V2-level2";
-    WonderQueryParam_GroupBy["CauseOfDeath"] = "D76.V2-level3";
-    WonderQueryParam_GroupBy["ICD10_113CauseList"] = "D76.V4";
-    WonderQueryParam_GroupBy["ICD10_130CauseListInfants"] = "D76.V12";
-    WonderQueryParam_GroupBy["InjuryIntent"] = "D76.V22";
-    WonderQueryParam_GroupBy["InjuryMechanismAndAllOtherLeadingCauses"] = "D76.V23";
-    WonderQueryParam_GroupBy["DrugAlcoholInducedCauses"] = "D76.V25";
-})(WonderQueryParam_GroupBy = exports.WonderQueryParam_GroupBy || (exports.WonderQueryParam_GroupBy = {}));
-exports.AllWonderParams = [WonderQueryParam_Include, WonderQueryParam_AgeGroup, WonderQueryParam_GroupBy, , WonderQueryParam_Measure, , WonderQueryParam_Util];
-let WonderQueryParam_Reversed_Cache = null;
-// export function WonderQueryParam_Reversed() {
-//   if (WonderQueryParam_Reversed_Cache == null) {
-//     let WonderQueryParam_Reversed_Cache = {} as any
-//     for (let key in WonderQueryParam) {
-//       WonderQueryParam_Reversed_Cache[WonderQueryParam[key]] = key;
-//     }
-//   }
-//   return WonderQueryParam_Reversed_Cache;
-// }
-function DeWonder(text) {
-    let tmp = text;
-    let allTranslations = [];
-    for (let groupName in exports.AllWonderParams) {
-        let group = exports.AllWonderParams[groupName];
-        for (let key in group) {
-            allTranslations.push([groupName, group[key], key]);
-        }
-    }
-    allTranslations = allTranslations.sort((a, b) => (b[1].length - a[1].length));
-    for (let item of allTranslations) {
-        // console.log(`Replacing ${group[key]} with ${key}`)
-        tmp = (0, FBF_Helpers_1.replaceAllInString)(tmp, `F_${item[1]}`, `F_Only_${item[2]}`);
-        tmp = (0, FBF_Helpers_1.replaceAllInString)(tmp, `I_${item[1]}`, `I_Only_${item[2]}`);
-        tmp = (0, FBF_Helpers_1.replaceAllInString)(tmp, `V_${item[1]}`, `V_Only_${item[2]}`);
-        tmp = (0, FBF_Helpers_1.replaceAllInString)(tmp, item[1], item[2]);
-    }
-    return tmp;
-}
-exports.DeWonder = DeWonder;
-class WonderRequest {
-    constructor() {
-        this.params = new Map();
-        this.groupByCount = 0;
-        this.groupByCountLimit = 5;
-        this.defaultParams = {
-            'dataset_code': ['D76'],
-            'B_2': [WonderQueryParam_Util.None],
-            'B_3': [WonderQueryParam_Util.None],
-            'B_4': [WonderQueryParam_Util.None],
-            'B_5': [WonderQueryParam_Util.None],
-            'O_age': [WonderQueryParam_AgeGroup.TenYear],
-            'O_location': [WonderQueryParam_Include.StatesAndCounties],
-            'O_aar_pop': ['0000'],
-            // 'O_aar_enable': ['false'],
-            'O_urban': [WonderQueryParam_GroupBy.Urbanization2013],
-            // 'O_aar_CI': ['true'],
-            'action-Send': ['Send'],
-            // 'O_aar_SE': ['true'],
-            'O_aar': ['aar_none'],
-            'M_1': [WonderQueryParam_Measure.Deaths],
-            'M_2': [WonderQueryParam_Measure.Population],
-            'M_3': [WonderQueryParam_Measure.CrudeRate],
-            'O_V10_fmode': ['freg'],
-            'O_V1_fmode': ['freg'],
-            'O_V25_fmode': ['freg'],
-            'O_V27_fmode': ['freg'],
-            'O_V2_fmode': ['freg'],
-            'O_V9_fmode': ['freg'],
-            'O_oc-sect1-request': ['close'],
-            'O_precision': ['1'],
-            'O_rate_per': ['100000'],
-            'O_show_supressed': ['true'],
-            'O_show_totals': ['false'],
-            'O_show_zeros': ['true'],
-            'O_timeout': ['600'],
-            'O_title': ['Example1'],
-            'O_javascript': ['off'],
-            'O_ucd': [WonderQueryParam_Include.ICD10Codes],
-            'F_D76.V1': [WonderQueryParam_Util.All],
-            'F_D76.V10': [WonderQueryParam_Util.All],
-            'F_D76.V2': [WonderQueryParam_Util.All],
-            'F_D76.V9': [WonderQueryParam_Util.All],
-            'V_D76.V7': [WonderQueryParam_Util.All],
-            'V_D76.V8': [WonderQueryParam_Util.All],
-            'V_D76.V9': [],
-            'V_D76.V6': ['00'],
-            'V_D76.V52': [WonderQueryParam_Util.All],
-            'V_D76.V5': [WonderQueryParam_Util.All],
-            'V_D76.V51': [WonderQueryParam_Util.All],
-            'V_D76.V17': [WonderQueryParam_Util.All],
-            'V_D76.V19': [WonderQueryParam_Util.All],
-            'V_D76.V2': [],
-            'V_D76.V20': [WonderQueryParam_Util.All],
-            'V_D76.V21': [WonderQueryParam_Util.All],
-            'V_D76.V22': [WonderQueryParam_Util.All],
-            'V_D76.V23': [WonderQueryParam_Util.All],
-            'V_D76.V24': [WonderQueryParam_Util.All],
-            'V_D76.V25': [],
-            'F_D76.V27': [WonderQueryParam_Util.All],
-            'O_show_suppressed': ['true'],
-            //values for non-standard age-adjusted rates
-            // 'VM_D76.M6_D76.V1_S': ['2004'],// [WonderQueryParam_Util.All],//years
-            // 'VM_D76.M6_D76.V17': [WonderQueryParam_Util.All],//Hispanic Origin
-            // 'VM_D76.M6_D76.V7': [WonderQueryParam_Util.All],//Gender
-            // 'VM_D76.M6_D76.V8': [WonderQueryParam_Util.All],//Race
-            'finder-stage-D76.V1': ['codeset'],
-            'finder-stage-D76.V10': ['codeset'],
-            'finder-stage-D76.V2': ['codeset'],
-            'finder-stage-D76.V25': ['codeset'],
-            'finder-stage-D76.V27': ['codeset'],
-            'finder-stage-D76.V9': ['codeset'],
-            'saved_id': [],
-            'stage': ['request']
-        };
-        this.defaultFIVParams = {};
-    }
-    addParam(name, value) {
-        if (typeof value == 'string') {
-            this.params.set(name, [value]);
-        }
-        else {
-            this.params.set(name, value);
-        }
-        return this;
-    }
-    urbanBy(version) {
-        let vCode = WonderQueryParam_GroupBy[version];
-        this.addParam('O_urban', vCode);
-        return this;
-    }
-    enableAgeAdjustedRate(isEnabled, confidenceInterval95 = isEnabled, standardError = isEnabled) {
-        this.addParam('O_aar_enable', isEnabled ? 'true' : 'false');
-        this.addParam('O_aar_CI', confidenceInterval95 ? 'true' : 'false');
-        this.addParam('O_aar_SE', standardError ? 'true' : 'false');
-        return this;
-    }
-    ageAdjustedRate(rateBy) {
-        this.addParam('O_arr', rateBy);
-        return this;
-    }
-    population(yearOfPopulationCount) {
-        this.addParam('O_aar_pop', yearOfPopulationCount);
-        return this;
-    }
-    locationBy(locByName) {
-        let locBy = WonderQueryParam_Include[locByName];
-        this.params.set('O_Location', [locBy]);
-        return this;
-    }
-    includeDates(dates) {
-        let paramName = `F_${WonderQueryParam_Include.YearAndMonth}`;
-        if (dates == 'all') {
-            this.params.set(paramName, [WonderQueryParam_Util.All]);
-            return;
-        }
-        return this;
-    }
-    enableJavascript(enabled) {
-        this.addParam('O_javascript', enabled ? 'on' : 'off');
-        return this;
-    }
-    measure(measureBy) {
-        let paramName = `M_${measureBy.replace('D.76.M', '')}`;
-        this.addParam(paramName, WonderQueryParam_Measure[measureBy]);
-    }
-    causeOfDeathBy(deathBy) {
-        let code = deathBy in WonderQueryParam_Include ? WonderQueryParam_Include[deathBy] : WonderQueryParam_GroupBy[deathBy];
-        this.addParam('O_ucd', [code]);
-        return this;
-    }
-    ageGroups(groupName) {
-        this.addParam(`O_age`, [WonderQueryParam_AgeGroup[groupName]]);
-        return this;
-    }
-    filterByYear(years) {
-        //let val = (typeof years == 'string') ? years : years.map(y => `${y} (${y})`).join(' ')
-        // return this.addParam('I_D76.V1', val);
-        return this.addParam(`F_D76.V1`, years);
-    }
-    groupBy(groupByName) {
-        if (this.groupByCount >= this.groupByCountLimit) {
-            throw new Error(`Cannot group by more than ${this.groupByCountLimit}`);
-        }
-        let parameterName = `B_${this.groupByCount + 1}`;
-        if (isWQP_None(groupByName)) {
-            this.addParam(parameterName, WonderQueryParam_Util.None);
-        }
-        else if (WonderQueryParam_GroupBy[groupByName]) {
-            let param = WonderQueryParam_GroupBy[groupByName];
-            this.addParam(parameterName, param);
-        }
-        else {
-            this.addParam(parameterName, groupByName);
-        }
-        this.groupByCount++;
-        return this;
-    }
-    toParamMap() {
-        this.setDefaults();
-        return this.params;
-    }
-    alternatives(k) {
-        if (k.length < 3) {
-            return [k];
-        }
-        let start = k.substring(0, 2);
-        let rest = k.substring(2);
-        switch (start) {
-            case 'F_':
-                return [k, `I_${rest}`, `V_${rest}`];
-            case 'I_':
-                return [k, `F_${rest}`, `V_${rest}`];
-            case 'V_':
-                return [k, `I_${rest}`, `F_${rest}`];
-            default:
-                return [k];
-        }
-    }
-    setDefaults() {
-        let ths = this;
-        for (let key in this.defaultParams) {
-            if (!((0, FBF_Helpers_1.isAllTrue)(ths.alternatives(key).map((altKey) => {
-                // console.log(`Checking alternative ${altKey}`)
-                if (ths.params.has(altKey)) {
-                    // console.log(`----Alt Found ${altKey}`)
-                }
-                return ths.params.has(altKey);
-            })))) {
-                // console.log(`Defaulting ${key} (${DeWonder(key)}) to ${this.defaultParams[key]}`)
-                this.params.set(key, this.defaultParams[key]);
-            }
-        }
-    }
-    toString() {
-        // console.log(`Building query string`)
-        let ths = this;
-        let toProcess = [];
-        let processed = new Map();
-        let name;
-        let keyList = new ConsumableLinkedList(this.params.keys());
-        keyList.consume((key) => {
-            if (key.startsWith('B_')) {
-                toProcess.push([key, ths.params.get(key)]);
-                return true;
-            }
-            return false;
-        });
-        // for (let i = 1; i <= 5; i++) {
-        //   name = `B_${i}`
-        //   toProcess.push([name, this.params.has(name) ? this.params.get(name) : [WonderQueryParam_Util.None]])
-        //   processed.set(name, true)
-        // }
-        // for (let key of this.params.keys()) {
-        //   if (key.startsWith('M_')) {
-        //     toProcess.push([key, this.params.get(key)])
-        //     processed.set(key, true)
-        //   }
-        // }
-        keyList.consume((key) => {
-            if (key.startsWith('M_')) {
-                toProcess.push([key, ths.params.get(key)]);
-                return true;
-            }
-            return false;
-        });
-        keyList.consume((key) => {
-            if (key.startsWith('O_')) {
-                toProcess.push([key, ths.params.get(key)]);
-                return true;
-            }
-            return false;
-        });
-        keyList.consume((key) => {
-            if (key.startsWith('F_') || key.startsWith('I_') || key.startsWith('V_')) {
-                toProcess.push([key, ths.params.get(key)]);
-                return true;
-            }
-            return false;
-        });
-        keyList.consume((key) => {
-            // console.log(`Uordered parameter ${key}`)
-            toProcess.push([key, ths.params.get(key)]);
-            return true;
-        });
-        // for (let key of this.params.keys()) {
-        //   if (!processed.has(key)) {
-        //     toProcess.push([key, this.params.get(key)])
-        //   }
-        // }
-        // console.log(`Full Query:\n${toProcess.map((param: [string, string[]]) => `${param[0]}(${DeWonder(param[0])}) = \n${param[1].join('\n--')}\n`)}`)
-        return toProcess.map((param, index) => {
-            // console.log(`Mapping ${param[0]} (${DeWonder(param[0])}) to `, param[1])
-            return `<parameter><name>${param[0]}</name>${param[1].length > 0 ? param[1].map(str => `<value>${str}</value>`).join('') : '<value />'}</parameter>`;
+                        var __awaiter = (this && this.__awaiter) || function(thisArg, _arguments, P, generator) {
+                            function adopt(value) { return value instanceof P ? value : new P(function(resolve) { resolve(value); }); }
+                            return new(P || (P = Promise))(function(resolve, reject) {
+                                function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+
+                                function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+
+                                function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+                                step((generator = generator.apply(thisArg, _arguments || [])).next());
+                            });
+                        };
+                        Object.defineProperty(exports, "__esModule", ({ value: true }));
+                        exports.replaceAllInString = exports.isAllTrue = exports.XmlToJson = exports.concactinate = exports.flatten = exports.ensureFBF_Helpers = exports.promiseDefault = exports.isNode = void 0;
+                        const Xml2JS = __webpack_require__( /*! xml2js */ "xml2js").parseString;
+
+                        function isNode() {
+                            return typeof window == 'undefined';
+                        }
+                        exports.isNode = isNode;
+
+                        function promiseDefault(prom, defaultValue) {
+                            return __awaiter(this, void 0, void 0, function*() {
+                                return new Promise((acc) => {
+                                    prom.then(acc).catch(e => acc(defaultValue));
+                                });
+                            });
+                        }
+                        exports.promiseDefault = promiseDefault;
+                        // export function ObjectMap<A,B>(input: A, transform: <k extends keyof A>()=>B): B {
+                        // return null
+                        // }
+                        Array.prototype.forEachAsync = function(onEach) {
+                            return __awaiter(this, void 0, void 0, function*() {
+                                for (let i = 0; i < this.length; i++) {
+                                    if ((yield onEach(this[i], i, this)) == 'BREAK') {
+                                        break;
+                                    }
+                                }
+                            });
+                        };
+                        Map.prototype.keysAsArray = function() {
+                            let ths = this;
+                            let out = [];
+                            for (let key of ths.keys()) {
+                                out.push(key);
+                            }
+                            return out;
+                        };
+                        Array.prototype.mapOrDrop = function(shouldKeep) {
+                            let ths = this;
+                            let out = [];
+                            for (let i = 0; i < ths.length; i++) {
+                                let fresh = shouldKeep(this[i], i);
+                                if (fresh == 'DROP') {
+                                    // console.log(`Dropping ${i}`,this[i])
+                                } else {
+                                    out.push(fresh);
+                                }
+                            }
+                            return out;
+                        };
+                        Map.prototype.getWithDefault = function(key, defaultValue) {
+                            let ths = this;
+                            if (!ths.has(key)) {
+                                ths.set(key, defaultValue(key));
+                            }
+                            return ths.get(key);
+                        };
+                        Array.prototype.pushAll = function(stuff) {
+                            if (Array.isArray(stuff)) {
+                                for (let item of stuff) {
+                                    this.push(item);
+                                }
+                            } else {
+                                this.push(stuff);
+                            }
+                        };
+                        String.prototype.isBoolean = function() {
+                            return this.toLowerCase() == 'true' || this.toLowerCase() == 'false';
+                        };
+                        String.prototype.isNumber = function() {
+                            return !Number.isNaN(Number(this));
+                        };
+                        // if (typeof Map.prototype.toArray == 'undefined') {
+                        //     console.log(`Shimming Map.toArray`)
+                        //     Map.prototype.toArray = function <K, V>() {
+                        //         let ths: Map<K, V> = this
+                        //         let out: Array<[K, V]> = []
+                        //         for (let key of ths.keys()) {
+                        //             out.push([key, ths.get(key)]);
+                        //         }
+                        //         return out
+                        //     }
+                        // }
+                        function ensureFBF_Helpers() {
+                            console.log();
+                        }
+                        exports.ensureFBF_Helpers = ensureFBF_Helpers;
+
+                        function flatten(arr) {
+                            let out = [];
+                            for (let i = 0; i < arr.length; i++) {
+                                for (let j = 0; j < arr[i].length; j++) {
+                                    out.push(arr[i][j]);
+                                }
+                            }
+                            return out;
+                        }
+                        exports.flatten = flatten;
+
+                        function concactinate(a, b) {
+                            let out = [];
+                            a.forEach((aa) => {
+                                out.push(aa);
+                            });
+                            b.forEach((bb) => {
+                                out.push(bb);
+                            });
+                            return out;
+                        }
+                        exports.concactinate = concactinate;
+
+                        function XmlToJson(xml) {
+                            return __awaiter(this, void 0, void 0, function*() {
+                                return new Promise((acc, rej) => {
+                                    Xml2JS(`<data>${xml}</data>`, (err, value) => {
+                                        if (err) {
+                                            rej(err);
+                                        } else {
+                                            // console.log('cleaning',value)
+                                            // let result = cleanXmlToJson(value) as XmlElement;
+                                            acc(value.data);
+                                        }
+                                    });
+                                });
+                            });
+                        }
+                        exports.XmlToJson = XmlToJson;
+                        if (typeof String.prototype.replaceAll == 'undefined') {
+                            String.prototype.replaceAll = function(a, b) {
+                                return this.split(a).join(b);
+                            };
+                        }
+
+                        function isAllTrue(bools) {
+                            for (let i = 0; i < bools.length; i++) {
+                                if (bools[i]) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                        exports.isAllTrue = isAllTrue;
+
+                        function replaceAllInString(target, a, b) {
+                            return target.split(a).join(b);
+                        }
+                        exports.replaceAllInString = replaceAllInString;
+                        //# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiRkJGX0hlbHBlcnMuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmNGdW5jdGlvbnMvY29tbW9uL0ZCRl9IZWxwZXJzLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7OztBQUVBLE1BQU0sTUFBTSxHQUFHLE9BQU8sQ0FBQyxRQUFRLENBQUMsQ0FBQyxXQUFXLENBQUM7QUF1QjdDLFNBQWdCLE1BQU07SUFDbEIsT0FBTyxPQUFPLE1BQU0sSUFBSSxXQUFXLENBQUE7QUFDdkMsQ0FBQztBQUZELHdCQUVDO0FBQ0QsU0FBc0IsY0FBYyxDQUFJLElBQWdCLEVBQUUsWUFBZTs7UUFDckUsT0FBTyxJQUFJLE9BQU8sQ0FBQyxDQUFDLEdBQUcsRUFBRSxFQUFFO1lBQ3ZCLElBQUksQ0FBQyxJQUFJLENBQUMsR0FBRyxDQUFDLENBQUMsS0FBSyxDQUFDLENBQUMsQ0FBQyxFQUFFLENBQUMsR0FBRyxDQUFDLFlBQVksQ0FBQyxDQUFDLENBQUE7UUFDaEQsQ0FBQyxDQUFDLENBQUE7SUFDTixDQUFDO0NBQUE7QUFKRCx3Q0FJQztBQUNELHFGQUFxRjtBQUNyRixjQUFjO0FBQ2QsSUFBSTtBQUNKLEtBQUssQ0FBQyxTQUFTLENBQUMsWUFBWSxHQUFHLFVBQW1CLE1BQTBFOztRQUN4SCxLQUFLLElBQUksQ0FBQyxHQUFHLENBQUMsRUFBRSxDQUFDLEdBQUcsSUFBSSxDQUFDLE1BQU0sRUFBRSxDQUFDLEVBQUUsRUFBRTtZQUNsQyxJQUFJLENBQUEsTUFBTSxNQUFNLENBQUMsSUFBSSxDQUFDLENBQUMsQ0FBQyxFQUFFLENBQUMsRUFBRSxJQUFJLENBQUMsS0FBSSxPQUFPLEVBQUU7Z0JBQzNDLE1BQU07YUFDVDtTQUNKO0lBQ0wsQ0FBQztDQUFBLENBQUE7QUFDRCxHQUFHLENBQUMsU0FBUyxDQUFDLFdBQVcsR0FBRztJQUN4QixJQUFJLEdBQUcsR0FBRyxJQUFpQixDQUFBO0lBQzNCLElBQUksR0FBRyxHQUFRLEVBQUUsQ0FBQTtJ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
+
+                        /***/
+                    }),
+
+                    /***/
+                    "./srcFunctions/common/WonderData.ts":
+                    /*!*******************************************!*\
+                      !*** ./srcFunctions/common/WonderData.ts ***!
+                      \*******************************************/
+                    /***/
+                        (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+                                var __awaiter = (this && this.__awaiter) || function(thisArg, _arguments, P, generator) {
+                                    function adopt(value) { return value instanceof P ? value : new P(function(resolve) { resolve(value); }); }
+                                    return new(P || (P = Promise))(function(resolve, reject) {
+                                        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+
+                                        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+
+                                        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+                                        step((generator = generator.apply(thisArg, _arguments || [])).next());
+                                    });
+                                };
+                                var __importDefault = (this && this.__importDefault) || function(mod) {
+                                    return (mod && mod.__esModule) ? mod : { "default": mod };
+                                };
+                                Object.defineProperty(exports, "__esModule", ({ value: true }));
+                                exports.DataChannelStreaming = exports.DataChannel = exports.Disease = exports.ExampleRequest = exports.ConsumableLinkedList = exports.WonderRequest = exports.DeWonder = exports.AllWonderParams = exports.WonderQueryParam_GroupBy = exports.WonderQueryParam_Race = exports.WonderQueryParam_Gender = exports.WonderQueryParam_Measure = exports.WonderQueryParam_AgeGroup = exports.WonderQueryParam_Include = exports.WonderQueryParam = exports.WonderQueryParam_Util = exports.parseYearMonthString = exports.isYearMonthString = exports.MonthEnum = exports.YearStrings = exports.MonthNames = exports.isWQP_None = void 0;
+                                // import * as XMLParser from 'xml2js'
+                                if (true) {
+                                    global.fetch = __webpack_require__( /*! node-fetch */ "node-fetch");
+                                }
+                                const bristolboard_1 = __webpack_require__( /*! bristolboard */ "bristolboard");
+                                const sorted_btree_1 = __importDefault(__webpack_require__( /*! sorted-btree */ "sorted-btree"));
+                                const FBF_Helpers_1 = __webpack_require__( /*! ./FBF_Helpers */ "./srcFunctions/common/FBF_Helpers.ts");
+                                const WonderDataImports_1 = __webpack_require__( /*! ./WonderData/WonderDataImports */ "./srcFunctions/common/WonderData/WonderDataImports.ts");
+                                // export type WonderQueryParamName = (keyof typeof WonderQueryParam) 
+                                function isWQP_None(param) {
+                                    return (param == 'None') || (param == WonderQueryParam_Util.None);
+                                }
+                                exports.isWQP_None = isWQP_None;
+                                var MonthNames;
+                                (function(MonthNames) {
+                                    MonthNames[MonthNames["Jan"] = 1] = "Jan";
+                                    MonthNames[MonthNames["Feb"] = 2] = "Feb";
+                                    MonthNames[MonthNames["Mar"] = 3] = "Mar";
+                                    MonthNames[MonthNames["Apr"] = 4] = "Apr";
+                                    MonthNames[MonthNames["May"] = 5] = "May";
+                                    MonthNames[MonthNames["Jun"] = 6] = "Jun";
+                                    MonthNames[MonthNames["Jul"] = 7] = "Jul";
+                                    MonthNames[MonthNames["Aug"] = 8] = "Aug";
+                                    MonthNames[MonthNames["Sep"] = 9] = "Sep";
+                                    MonthNames[MonthNames["Oct"] = 10] = "Oct";
+                                    MonthNames[MonthNames["Nov"] = 11] = "Nov";
+                                    MonthNames[MonthNames["Dec"] = 12] = "Dec";
+                                })(MonthNames = exports.MonthNames || (exports.MonthNames = {}));
+
+                                function YearStrings(start = 1999, end = 2020) {
+                                    let out = [];
+                                    for (let i = start; i <= end; i++) {
+                                        out.push(`${i}`);
+                                    }
+                                    return out;
+                                }
+                                exports.YearStrings = YearStrings;
+                                var MonthEnum;
+                                (function(MonthEnum) {
+                                    MonthEnum[MonthEnum["January"] = 0] = "January";
+                                    MonthEnum[MonthEnum["February"] = 1] = "February";
+                                    MonthEnum[MonthEnum["March"] = 2] = "March";
+                                    MonthEnum[MonthEnum["April"] = 3] = "April";
+                                    MonthEnum[MonthEnum["May"] = 4] = "May";
+                                    MonthEnum[MonthEnum["June"] = 5] = "June";
+                                    MonthEnum[MonthEnum["July"] = 6] = "July";
+                                    MonthEnum[MonthEnum["August"] = 7] = "August";
+                                    MonthEnum[MonthEnum["September"] = 8] = "September";
+                                    MonthEnum[MonthEnum["October"] = 9] = "October";
+                                    MonthEnum[MonthEnum["November"] = 10] = "November";
+                                    MonthEnum[MonthEnum["December"] = 11] = "December";
+                                })(MonthEnum = exports.MonthEnum || (exports.MonthEnum = {}));
+
+                                function isYearMonthString(str) {
+                                    return str.split('-').length == 2;
+                                }
+                                exports.isYearMonthString = isYearMonthString;
+
+                                function parseYearMonthString(str) {
+                                    let parts = str.split('-');
+                                    switch (parts.length) {
+                                        case 0:
+                                            return null;
+                                        case 1:
+                                            return [parts[0], -1];
+                                        case 2:
+                                            return [parts[0], MonthEnum[parts[1]]];
+                                    }
+                                }
+                                exports.parseYearMonthString = parseYearMonthString;
+                                var WonderQueryParam_Util;
+                                (function(WonderQueryParam_Util) {
+                                    WonderQueryParam_Util["None"] = "*None*";
+                                    WonderQueryParam_Util["All"] = "*All*";
+                                })(WonderQueryParam_Util = exports.WonderQueryParam_Util || (exports.WonderQueryParam_Util = {}));
+                                var WonderQueryParam;
+                                (function(WonderQueryParam) {
+                                    //FIV
+                                    WonderQueryParam["YearAndMonth"] = "D76.V1";
+                                })(WonderQueryParam = exports.WonderQueryParam || (exports.WonderQueryParam = {}));
+                                var WonderQueryParam_Include;
+                                (function(WonderQueryParam_Include) {
+                                    WonderQueryParam_Include["YearAndMonth"] = "D76.V1";
+                                    WonderQueryParam_Include["CensusRegions"] = "D76.V10";
+                                    WonderQueryParam_Include["ICD10Codes"] = "D76.V2";
+                                    WonderQueryParam_Include["HHSRegions"] = "D76.V27";
+                                    WonderQueryParam_Include["StatesAndCounties"] = "D76.V9";
+                                })(WonderQueryParam_Include = exports.WonderQueryParam_Include || (exports.WonderQueryParam_Include = {}));
+                                var WonderQueryParam_AgeGroup;
+                                (function(WonderQueryParam_AgeGroup) {
+                                    WonderQueryParam_AgeGroup["TenYear"] = "D76.V5";
+                                    WonderQueryParam_AgeGroup["FiveYear"] = "D76.V51";
+                                    WonderQueryParam_AgeGroup["SingleYear"] = "D76.V52";
+                                    WonderQueryParam_AgeGroup["Infant"] = "D76.V6";
+                                })(WonderQueryParam_AgeGroup = exports.WonderQueryParam_AgeGroup || (exports.WonderQueryParam_AgeGroup = {}));
+                                var WonderQueryParam_Measure;
+                                (function(WonderQueryParam_Measure) {
+                                    WonderQueryParam_Measure["Deaths"] = "D76.M1";
+                                    WonderQueryParam_Measure["Population"] = "D76.M2";
+                                    WonderQueryParam_Measure["CrudeRate"] = "D76.M3";
+                                    WonderQueryParam_Measure["CrudeRateStandardError"] = "D76.M31";
+                                    WonderQueryParam_Measure["CrudeRate95ConfidenceInterval"] = "D76.M32";
+                                    WonderQueryParam_Measure["AgeAdjustedRate"] = "D76.M4";
+                                    WonderQueryParam_Measure["AgeAdjustedRateStandardError"] = "D76.M41";
+                                    WonderQueryParam_Measure["AgeAdjustedRateConfidenceInterval"] = "D76.M42";
+                                    WonderQueryParam_Measure["PercentOfTotalDeaths"] = "D76.M9";
+                                })(WonderQueryParam_Measure = exports.WonderQueryParam_Measure || (exports.WonderQueryParam_Measure = {}));
+                                var WonderQueryParam_Gender;
+                                (function(WonderQueryParam_Gender) {
+                                    WonderQueryParam_Gender["Male"] = "M";
+                                    WonderQueryParam_Gender["Female"] = "F";
+                                })(WonderQueryParam_Gender = exports.WonderQueryParam_Gender || (exports.WonderQueryParam_Gender = {}));
+                                var WonderQueryParam_Race;
+                                (function(WonderQueryParam_Race) {
+                                    WonderQueryParam_Race["HispanicOrLatino"] = "2135-2";
+                                    WonderQueryParam_Race["NotHispanicOrLatino"] = "2186-2";
+                                    WonderQueryParam_Race["NotStated"] = "NS";
+                                    WonderQueryParam_Race["AmericanIndianOrAlaskaNative"] = "1002-5";
+                                    WonderQueryParam_Race["AsianOrPacificIslander"] = "A-PI";
+                                    WonderQueryParam_Race["Black"] = "2054-5";
+                                    WonderQueryParam_Race["White"] = "2106-3";
+                                })(WonderQueryParam_Race = exports.WonderQueryParam_Race || (exports.WonderQueryParam_Race = {}));
+                                var WonderQueryParam_GroupBy;
+                                (function(WonderQueryParam_GroupBy) {
+                                    WonderQueryParam_GroupBy["CensusRegion"] = "D76.V10-level1";
+                                    WonderQueryParam_GroupBy["CensusDivision"] = "D76.V10-level2";
+                                    WonderQueryParam_GroupBy["HHSRegion"] = "D76.V27-level1";
+                                    WonderQueryParam_GroupBy["State"] = "D76.V9-level1";
+                                    WonderQueryParam_GroupBy["County"] = "D76.V9-level2";
+                                    WonderQueryParam_GroupBy["Urbanization2013"] = "D76.V19";
+                                    WonderQueryParam_GroupBy["Urbanization2006"] = "D76.V11";
+                                    WonderQueryParam_GroupBy["AgeGroups"] = "D76.V5";
+                                    WonderQueryParam_GroupBy["Gender"] = "D76.V7";
+                                    WonderQueryParam_GroupBy["HispanicOrigin"] = "D76.V17";
+                                    WonderQueryParam_GroupBy["Race"] = "D76.V8";
+                                    //timeThere 
+                                    WonderQueryParam_GroupBy["Year"] = "D76.V1-level1";
+                                    WonderQueryParam_GroupBy["Month"] = "D76.V1-level2";
+                                    WonderQueryParam_GroupBy["Weekday"] = "D76.V24";
+                                    WonderQueryParam_GroupBy["Autopsy"] = "D76.V20";
+                                    WonderQueryParam_GroupBy["PlaceofDeath"] = "D76.V21";
+                                    WonderQueryParam_GroupBy["ICD10"] = "D76.V2";
+                                    WonderQueryParam_GroupBy["LeadingCausesofDeath"] = "D76.V28";
+                                    WonderQueryParam_GroupBy["LeadingCausesofDeathInfants"] = "D76.V29";
+                                    WonderQueryParam_GroupBy["ICDChapter"] = "D76.V2-level1";
+                                    WonderQueryParam_GroupBy["ICDSubChapter"] = "D76.V2-level2";
+                                    WonderQueryParam_GroupBy["CauseOfDeath"] = "D76.V2-level3";
+                                    WonderQueryParam_GroupBy["ICD10_113CauseList"] = "D76.V4";
+                                    WonderQueryParam_GroupBy["ICD10_130CauseListInfants"] = "D76.V12";
+                                    WonderQueryParam_GroupBy["InjuryIntent"] = "D76.V22";
+                                    WonderQueryParam_GroupBy["InjuryMechanismAndAllOtherLeadingCauses"] = "D76.V23";
+                                    WonderQueryParam_GroupBy["DrugAlcoholInducedCauses"] = "D76.V25";
+                                })(WonderQueryParam_GroupBy = exports.WonderQueryParam_GroupBy || (exports.WonderQueryParam_GroupBy = {}));
+                                exports.AllWonderParams = [WonderQueryParam_Include, WonderQueryParam_AgeGroup, WonderQueryParam_GroupBy, , WonderQueryParam_Measure, , WonderQueryParam_Util];
+                                let WonderQueryParam_Reversed_Cache = null;
+                                // export function WonderQueryParam_Reversed() {
+                                //   if (WonderQueryParam_Reversed_Cache == null) {
+                                //     let WonderQueryParam_Reversed_Cache = {} as any
+                                //     for (let key in WonderQueryParam) {
+                                //       WonderQueryParam_Reversed_Cache[WonderQueryParam[key]] = key;
+                                //     }
+                                //   }
+                                //   return WonderQueryParam_Reversed_Cache;
+                                // }
+                                function DeWonder(text) {
+                                    let tmp = text;
+                                    let allTranslations = [];
+                                    for (let groupName in exports.AllWonderParams) {
+                                        let group = exports.AllWonderParams[groupName];
+                                        for (let key in group) {
+                                            allTranslations.push([groupName, group[key], key]);
+                                        }
+                                    }
+                                    allTranslations = allTranslations.sort((a, b) => (b[1].length - a[1].length));
+                                    for (let item of allTranslations) {
+                                        // console.log(`Replacing ${group[key]} with ${key}`)
+                                        tmp = (0, FBF_Helpers_1.replaceAllInString)(tmp, `F_${item[1]}`, `F_Only_${item[2]}`);
+                                        tmp = (0, FBF_Helpers_1.replaceAllInString)(tmp, `I_${item[1]}`, `I_Only_${item[2]}`);
+                                        tmp = (0, FBF_Helpers_1.replaceAllInString)(tmp, `V_${item[1]}`, `V_Only_${item[2]}`);
+                                        tmp = (0, FBF_Helpers_1.replaceAllInString)(tmp, item[1], item[2]);
+                                    }
+                                    return tmp;
+                                }
+                                exports.DeWonder = DeWonder;
+                                class WonderRequest {
+                                    constructor() {
+                                        this.params = new Map();
+                                        this.groupByCount = 0;
+                                        this.groupByCountLimit = 5;
+                                        this.defaultParams = {
+                                            'dataset_code': ['D76'],
+                                            'B_2': [WonderQueryParam_Util.None],
+                                            'B_3': [WonderQueryParam_Util.None],
+                                            'B_4': [WonderQueryParam_Util.None],
+                                            'B_5': [WonderQueryParam_Util.None],
+                                            'O_age': [WonderQueryParam_AgeGroup.TenYear],
+                                            'O_location': [WonderQueryParam_Include.StatesAndCounties],
+                                            'O_aar_pop': ['0000'],
+                                            // 'O_aar_enable': ['false'],
+                                            'O_urban': [WonderQueryParam_GroupBy.Urbanization2013],
+                                            // 'O_aar_CI': ['true'],
+                                            'action-Send': ['Send'],
+                                            // 'O_aar_SE': ['true'],
+                                            'O_aar': ['aar_none'],
+                                            'M_1': [WonderQueryParam_Measure.Deaths],
+                                            'M_2': [WonderQueryParam_Measure.Population],
+                                            'M_3': [WonderQueryParam_Measure.CrudeRate],
+                                            'O_V10_fmode': ['freg'],
+                                            'O_V1_fmode': ['freg'],
+                                            'O_V25_fmode': ['freg'],
+                                            'O_V27_fmode': ['freg'],
+                                            'O_V2_fmode': ['freg'],
+                                            'O_V9_fmode': ['freg'],
+                                            'O_oc-sect1-request': ['close'],
+                                            'O_precision': ['1'],
+                                            'O_rate_per': ['100000'],
+                                            'O_show_supressed': ['true'],
+                                            'O_show_totals': ['false'],
+                                            'O_show_zeros': ['true'],
+                                            'O_timeout': ['600'],
+                                            'O_title': ['Example1'],
+                                            'O_javascript': ['off'],
+                                            'O_ucd': [WonderQueryParam_Include.ICD10Codes],
+                                            'F_D76.V1': [WonderQueryParam_Util.All],
+                                            'F_D76.V10': [WonderQueryParam_Util.All],
+                                            'F_D76.V2': [WonderQueryParam_Util.All],
+                                            'F_D76.V9': [WonderQueryParam_Util.All],
+                                            'V_D76.V7': [WonderQueryParam_Util.All],
+                                            'V_D76.V8': [WonderQueryParam_Util.All],
+                                            'V_D76.V9': [],
+                                            'V_D76.V6': ['00'],
+                                            'V_D76.V52': [WonderQueryParam_Util.All],
+                                            'V_D76.V5': [WonderQueryParam_Util.All],
+                                            'V_D76.V51': [WonderQueryParam_Util.All],
+                                            'V_D76.V17': [WonderQueryParam_Util.All],
+                                            'V_D76.V19': [WonderQueryParam_Util.All],
+                                            'V_D76.V2': [],
+                                            'V_D76.V20': [WonderQueryParam_Util.All],
+                                            'V_D76.V21': [WonderQueryParam_Util.All],
+                                            'V_D76.V22': [WonderQueryParam_Util.All],
+                                            'V_D76.V23': [WonderQueryParam_Util.All],
+                                            'V_D76.V24': [WonderQueryParam_Util.All],
+                                            'V_D76.V25': [],
+                                            'F_D76.V27': [WonderQueryParam_Util.All],
+                                            'O_show_suppressed': ['true'],
+                                            //values for non-standard age-adjusted rates
+                                            // 'VM_D76.M6_D76.V1_S': ['2004'],// [WonderQueryParam_Util.All],//years
+                                            // 'VM_D76.M6_D76.V17': [WonderQueryParam_Util.All],//Hispanic Origin
+                                            // 'VM_D76.M6_D76.V7': [WonderQueryParam_Util.All],//Gender
+                                            // 'VM_D76.M6_D76.V8': [WonderQueryParam_Util.All],//Race
+                                            'finder-stage-D76.V1': ['codeset'],
+                                            'finder-stage-D76.V10': ['codeset'],
+                                            'finder-stage-D76.V2': ['codeset'],
+                                            'finder-stage-D76.V25': ['codeset'],
+                                            'finder-stage-D76.V27': ['codeset'],
+                                            'finder-stage-D76.V9': ['codeset'],
+                                            'saved_id': [],
+                                            'stage': ['request']
+                                        };
+                                        this.defaultFIVParams = {};
+                                    }
+                                    addParam(name, value) {
+                                        if (typeof value == 'string') {
+                                            this.params.set(name, [value]);
+                                        } else {
+                                            this.params.set(name, value);
+                                        }
+                                        return this;
+                                    }
+                                    urbanBy(version) {
+                                        let vCode = WonderQueryParam_GroupBy[version];
+                                        this.addParam('O_urban', vCode);
+                                        return this;
+                                    }
+                                    enableAgeAdjustedRate(isEnabled, confidenceInterval95 = isEnabled, standardError = isEnabled) {
+                                        this.addParam('O_aar_enable', isEnabled ? 'true' : 'false');
+                                        this.addParam('O_aar_CI', confidenceInterval95 ? 'true' : 'false');
+                                        this.addParam('O_aar_SE', standardError ? 'true' : 'false');
+                                        return this;
+                                    }
+                                    ageAdjustedRate(rateBy) {
+                                        this.addParam('O_arr', rateBy);
+                                        return this;
+                                    }
+                                    population(yearOfPopulationCount) {
+                                        this.addParam('O_aar_pop', yearOfPopulationCount);
+                                        return this;
+                                    }
+                                    locationBy(locByName) {
+                                        let locBy = WonderQueryParam_Include[locByName];
+                                        this.params.set('O_Location', [locBy]);
+                                        return this;
+                                    }
+                                    includeDates(dates) {
+                                        let paramName = `F_${WonderQueryParam_Include.YearAndMonth}`;
+                                        if (dates == 'all') {
+                                            this.params.set(paramName, [WonderQueryParam_Util.All]);
+                                            return;
+                                        }
+                                        return this;
+                                    }
+                                    enableJavascript(enabled) {
+                                        this.addParam('O_javascript', enabled ? 'on' : 'off');
+                                        return this;
+                                    }
+                                    measure(measureBy) {
+                                        let paramName = `M_${measureBy.replace('D.76.M', '')}`;
+                                        this.addParam(paramName, WonderQueryParam_Measure[measureBy]);
+                                    }
+                                    causeOfDeathBy(deathBy) {
+                                        let code = deathBy in WonderQueryParam_Include ? WonderQueryParam_Include[deathBy] : WonderQueryParam_GroupBy[deathBy];
+                                        this.addParam('O_ucd', [code]);
+                                        return this;
+                                    }
+                                    ageGroups(groupName) {
+                                        this.addParam(`O_age`, [WonderQueryParam_AgeGroup[groupName]]);
+                                        return this;
+                                    }
+                                    filterByYear(years) {
+                                        //let val = (typeof years == 'string') ? years : years.map(y => `${y} (${y})`).join(' ')
+                                        // return this.addParam('I_D76.V1', val);
+                                        return this.addParam(`F_D76.V1`, years);
+                                    }
+                                    groupBy(groupByName) {
+                                        if (this.groupByCount >= this.groupByCountLimit) {
+                                            throw new Error(`Cannot group by more than ${this.groupByCountLimit}`);
+                                        }
+                                        let parameterName = `B_${this.groupByCount + 1}`;
+                                        if (isWQP_None(groupByName)) {
+                                            this.addParam(parameterName, WonderQueryParam_Util.None);
+                                        } else if (WonderQueryParam_GroupBy[groupByName]) {
+                                            let param = WonderQueryParam_GroupBy[groupByName];
+                                            this.addParam(parameterName, param);
+                                        } else {
+                                            this.addParam(parameterName, groupByName);
+                                        }
+                                        this.groupByCount++;
+                                        return this;
+                                    }
+                                    toParamMap() {
+                                        this.setDefaults();
+                                        return this.params;
+                                    }
+                                    alternatives(k) {
+                                        if (k.length < 3) {
+                                            return [k];
+                                        }
+                                        let start = k.substring(0, 2);
+                                        let rest = k.substring(2);
+                                        switch (start) {
+                                            case 'F_':
+                                                return [k, `I_${rest}`, `V_${rest}`];
+                                            case 'I_':
+                                                return [k, `F_${rest}`, `V_${rest}`];
+                                            case 'V_':
+                                                return [k, `I_${rest}`, `F_${rest}`];
+                                            default:
+                                                return [k];
+                                        }
+                                    }
+                                    setDefaults() {
+                                        let ths = this;
+                                        for (let key in this.defaultParams) {
+                                            if (!((0, FBF_Helpers_1.isAllTrue)(ths.alternatives(key).map((altKey) => {
+                                                    // console.log(`Checking alternative ${altKey}`)
+                                                    if (ths.params.has(altKey)) {
+                                                        // console.log(`----Alt Found ${altKey}`)
+                                                    }
+                                                    return ths.params.has(altKey);
+                                                })))) {
+                                                // console.log(`Defaulting ${key} (${DeWonder(key)}) to ${this.defaultParams[key]}`)
+                                                this.params.set(key, this.defaultParams[key]);
+                                            }
+                                        }
+                                    }
+                                    toString() {
+                                            // console.log(`Building query string`)
+                                            let ths = this;
+                                            let toProcess = [];
+                                            let processed = new Map();
+                                            let name;
+                                            let keyList = new ConsumableLinkedList(this.params.keys());
+                                            keyList.consume((key) => {
+                                                if (key.startsWith('B_')) {
+                                                    toProcess.push([key, ths.params.get(key)]);
+                                                    return true;
+                                                }
+                                                return false;
+                                            });
+                                            // for (let i = 1; i <= 5; i++) {
+                                            //   name = `B_${i}`
+                                            //   toProcess.push([name, this.params.has(name) ? this.params.get(name) : [WonderQueryParam_Util.None]])
+                                            //   processed.set(name, true)
+                                            // }
+                                            // for (let key of this.params.keys()) {
+                                            //   if (key.startsWith('M_')) {
+                                            //     toProcess.push([key, this.params.get(key)])
+                                            //     processed.set(key, true)
+                                            //   }
+                                            // }
+                                            keyList.consume((key) => {
+                                                if (key.startsWith('M_')) {
+                                                    toProcess.push([key, ths.params.get(key)]);
+                                                    return true;
+                                                }
+                                                return false;
+                                            });
+                                            keyList.consume((key) => {
+                                                if (key.startsWith('O_')) {
+                                                    toProcess.push([key, ths.params.get(key)]);
+                                                    return true;
+                                                }
+                                                return false;
+                                            });
+                                            keyList.consume((key) => {
+                                                if (key.startsWith('F_') || key.startsWith('I_') || key.startsWith('V_')) {
+                                                    toProcess.push([key, ths.params.get(key)]);
+                                                    return true;
+                                                }
+                                                return false;
+                                            });
+                                            keyList.consume((key) => {
+                                                // console.log(`Uordered parameter ${key}`)
+                                                toProcess.push([key, ths.params.get(key)]);
+                                                return true;
+                                            });
+                                            // for (let key of this.params.keys()) {
+                                            //   if (!processed.has(key)) {
+                                            //     toProcess.push([key, this.params.get(key)])
+                                            //   }
+                                            // }
+                                            // console.log(`Full Query:\n${toProcess.map((param: [string, string[]]) => `${param[0]}(${DeWonder(param[0])}) = \n${param[1].join('\n--')}\n`)}`)
+                                            return toProcess.map((param, index) => {
+                                                        // console.log(`Mapping ${param[0]} (${DeWonder(param[0])}) to `, param[1])
+                                                        return `<parameter><name>${param[0]}</name>${param[1].length > 0 ? param[1].map(str => `<value>${str}</value>`).join('') : '<value />'}</parameter>`;
         }).join('');
     }
     requestTable(setDefaults = true) {
@@ -1088,7 +1111,7 @@ class Disease {
     }
     getAvailableChannels() {
         let out = [];
-        for (let key in Object.keys(this.deathsByAge)) {
+        for (let key of Object.keys(this.deathsByAge)) {
             out.push([`DeathsByAge~${key}`, this.deathsByAge[key].title]);
         }
         return out;
@@ -1145,7 +1168,8 @@ class DataChannel {
         this.tree.forRange(startNode[0], endNode[0], true, onEach);
     }
     static fromJson(json) {
-        let out = new DataChannel(json.title, bristolboard_1.FColor.fromHex(json.color, '', ''));
+        var _a;
+        let out = new DataChannel(json.title, bristolboard_1.FColor.fromHex((_a = json === null || json === void 0 ? void 0 : json.color) !== null && _a !== void 0 ? _a : '000000', '', ''));
         out.tree.setPairs(json.data);
         out.minValue = json.valueRange[0];
         out.maxValue = json.valueRange[1];
@@ -1773,16 +1797,6 @@ module.exports = require("firebase-functions");
 
 /***/ }),
 
-/***/ "fs":
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-/***/ ((module) => {
-
-module.exports = require("fs");
-
-/***/ }),
-
 /***/ "node-fetch":
 /*!*****************************!*\
   !*** external "node-fetch" ***!
@@ -1790,16 +1804,6 @@ module.exports = require("fs");
 /***/ ((module) => {
 
 module.exports = require("node-fetch");
-
-/***/ }),
-
-/***/ "path":
-/*!***********************!*\
-  !*** external "path" ***!
-  \***********************/
-/***/ ((module) => {
-
-module.exports = require("path");
 
 /***/ }),
 
@@ -1820,6 +1824,46 @@ module.exports = require("sorted-btree");
 /***/ ((module) => {
 
 module.exports = require("xml2js");
+
+/***/ }),
+
+/***/ "child_process":
+/*!********************************!*\
+  !*** external "child_process" ***!
+  \********************************/
+/***/ ((module) => {
+
+module.exports = require("child_process");
+
+/***/ }),
+
+/***/ "crypto":
+/*!*************************!*\
+  !*** external "crypto" ***!
+  \*************************/
+/***/ ((module) => {
+
+module.exports = require("crypto");
+
+/***/ }),
+
+/***/ "fs":
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+/***/ ((module) => {
+
+module.exports = require("fs");
+
+/***/ }),
+
+/***/ "path":
+/*!***********************!*\
+  !*** external "path" ***!
+  \***********************/
+/***/ ((module) => {
+
+module.exports = require("path");
 
 /***/ })
 

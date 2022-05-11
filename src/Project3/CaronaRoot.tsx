@@ -39,6 +39,12 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
 
 
     }
+    componentDidUpdate(prevProps: Readonly<CaronaRoot_Props>, prevState: Readonly<CaronaRoot_State>, snapshot?: any): void {
+        if (this.state.diseaseDescriptions.length != database.diseaseDirectory.size) {
+            console.log(`Updating description list`)
+            this.setState({ diseaseDescriptions: database.diseaseDirectory.toArrayWithKeys().sort((a, b) => (b[1].maxPerMonth - a[1].maxPerMonth)).map(i => i[1]) })
+        }
+    }
     componentWillUnmount(): void {
         database.removeListener(this.listenerIndex)
     }
@@ -97,6 +103,9 @@ export class DiseaseList extends React.Component<DiseaseList_Props, DiseaseList_
     get scrollerMaxHeight() {
         return (this.diseaseSearch.current ? this.diseaseSearchContainer.current.getBoundingClientRect().height - this.diseaseSearch.current.getHeight() - 64 : undefined)
     }
+    componentDidUpdate(prevProps: Readonly<DiseaseList_Props>, prevState: Readonly<DiseaseList_State>, snapshot?: any): void {
+
+    }
     render() {
         let ths = this
         return <div ref={this.diseaseSearchContainer} style={{
@@ -110,15 +119,21 @@ export class DiseaseList extends React.Component<DiseaseList_Props, DiseaseList_
                 maxHeight: ths.scrollerMaxHeight
             }}>
                 {this.state.diseases.map((disease, index) => {
-                    return <div style={{ padding: 16, display: 'flex' }}>
-                        <div style={{
-                            width: 16, height: 16, marginRight: 16,
-                            borderStyle: 'solid', borderWidth: 1, borderColor: fColor.grey.darken2.toHexString(), borderRadius: 4,
-                            display: 'inline-block', backgroundColor: disease[1].channels[0]?.[1]
-                        }} />
-                        <div style={{ lineHeight: '16px', fontSize: 18, color: fColor.darkText[0].toHexString(), maxWidth: '15vw' }}>{disease[0]}</div>
+                    return <div>
+                        <div key={disease[0].description.icdCode} style={{ padding: 16, display: 'flex' }}>
+                            <div style={{
+                                width: 16, height: 16, marginRight: 16,
+                                borderStyle: 'solid', borderWidth: 1, borderColor: fColor.grey.darken2.toHexString(), borderRadius: 4,
+                                display: 'inline-block', backgroundColor: disease[1].channels[0]?.[1]
+                            }} />
+                            <div style={{ lineHeight: '16px', fontSize: 18, color: fColor.darkText[0].toHexString(), maxWidth: '15vw' }}>{disease[0].description.technicalName}</div>
+                        </div>
+                        <div>
+                            {disease[0].getAvailableChannels().map(a => (<div>{a[0]}</div>))}
+                        </div>
                     </div>
                 })}
+
             </div>
 
             <DiseaseSearch ref={ths.diseaseSearch} defaultSelectedICD={this.props.defaultSelected} onChange={function (selected) {
@@ -176,6 +191,7 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
                     selected.push([disease, { channels: [], icdCode: disease.description.icdCode }])
                 }
             }
+            this.props.onChange(selected)
             this.setState({ selectedDiseases: selected })
         }
     }
