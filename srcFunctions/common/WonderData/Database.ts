@@ -1,5 +1,6 @@
 import { FColor } from "bristolboard";
-import { isNode } from "../FBF_Helpers";
+
+import { maxOfList, isNode } from "../FBF_Helpers";
 import { AgeGroup, AgeGroupDataChannels, AgeGroupDataChannels_JSON, DataChannel, DataChannelStreaming, DataChannelStreaming_ID, DataChannel_JSON, Disease, DiseaseData_JSON, DiseaseDescription, RawRonaColumns, WonderRequest, YearAndMonthString } from "./WonderDataImports";
 
 
@@ -38,18 +39,19 @@ export class Database {
   fileAccessor: FileAccessor = null;
   arrested: boolean = false
   constructor(fileAccessor: FileAccessor = null) {
-    this.fileAccessor = fileAccessor
+    this.fileAccessor = fileAccessor 
     if (fileAccessor) {
       let ths = this;
       fileAccessor.exists(this.diseaseDirectoryPath).then(exists => {
         if (exists) {
           fileAccessor.readFile<DiseaseDescription[]>(this.diseaseDirectoryPath).then(data => {
-
+            console.log(`Loaded directory from file ${this.diseaseDirectoryPath}`);
             if (Array.isArray(data)) {
               for (let description of data) {
                 ths.diseaseDirectory.set(description.icdCode, description)
                 ths.notifyListeners()
               }
+              console.log(`Loaded directory ${ths.diseaseDirectory.size}`)
             } else {
               console.log(`Failed to read file`, data)
             }
@@ -63,7 +65,7 @@ export class Database {
     }
   }
   private getColorForAgeGroup(ageGroup: AgeGroup): FColor {
-    switch (ageGroup) {
+    switch (ageGroup) { 
       case '1-4 years':
         return fColor.blue.darken1
       case '15-24 years':
@@ -189,7 +191,7 @@ export class Database {
       console.log(`Failed to pull ${description.icdCode}`, err)
     }
   }
-  async pullIcdCodes(max: number = -1) {
+  async pullIcdCodes(max: number = -1, onUpdate: (completed: number, total: number)=>void = ()=>{}) {
     let codes = await this.findIcdCodes()
     let ths = this;
     let addedIcds: string[] = []
@@ -198,6 +200,7 @@ export class Database {
         if (max != -1) {
           max++
         }
+        onUpdate(index, max)
       } else {
         if (max != -1 && index >= max) {
           return 'BREAK'
@@ -213,13 +216,16 @@ export class Database {
         } else {
           // ths.diseaseDirectory.set(code[0], description)
           addedIcds.push(code[0])
+          this.notifyListeners();
         }
+        onUpdate(index, max) 
 
       }
     })
     let output = this.diseaseDirectory.toArrayWithKeys().sort((a, b) => b[1].maxPerMonth - a[1].maxPerMonth).map(s => s[1])//[s[1],ths.deathsByICD.get(s[0])])
     console.log(output, output.map(s => [s.icdCode, ths.deathsByICD.get(s.icdCode)]))
     if (this.fileAccessor) {
+      console.log(`Saving directory ${output.length}`)
       this.fileAccessor.writeFile(this.diseaseDirectoryPath, output)
       for (let icd of addedIcds) {
         let disease = ths.deathsByICD.get(icd)
@@ -229,6 +235,7 @@ export class Database {
         }
       }
     }
+    this.notifyListeners();
     return output
   }
   diseasePath(icdCode: string) {
@@ -273,11 +280,11 @@ export class Database {
     let result = await fetch('https://data.cdc.gov/api/views/9bhg-hcku/rows.csv')
     let text = await result.text()
     let lines = text.split('\n')
-    let columnNames = lines[0]
+    let columnNames = lines[0].split(', ')
     lines.splice(0, 1)
     let values: Array<RawRonaColumns> = lines.mapOrDrop((line, index) => {
       let raw = line.split(',')
-      if (raw[3] != 'By Month' || raw[7] != 'All Sexes') {
+      if (raw[3] != 'By Month' || raw[7] != 'All Sexes' || raw[8] == "All Ages") {
         return 'DROP'
       }
       let out: RawRonaColumns = [] as any
@@ -314,8 +321,41 @@ export class Database {
       // return [raw[0], raw[1], raw[2], raw[3], raw[4], raw[5], raw[6], raw[7], raw[8], raw[9], raw[10], raw[11], raw[6], raw[6], raw[6], raw[6]] as RawColumns
     })
     let output = { columns: columnNames, rows: values }
+    let rows = values;
     console.log(output)
     window['lastCdc'] = output
+
+    let description: DiseaseDescription = { icdCode: "covid", laymanName: "COVID", technicalName: "Sars-CoV2", maxPerMonth: 0 };
+    let deathsByAge: AgeGroupDataChannels = {} as any;
+    let current = Date.now();
+    let last = Date.now();
+    let count = 0;
+    description.maxPerMonth = maxOfList(rows.map(r=>r[9]));
+    for (let row of rows) {
+      if (typeof deathsByAge[row[8]] == 'undefined') {
+        deathsByAge[row[8]] = new DataChannel(description.laymanName + ' ' + row[8], null)
+      }
+      let time = row[1]
+      // console.log(`${row[1]} Adding Row--------${row[8]} -> ${row[9]}`)
+      deathsByAge[row[8]].set(time, row[9])
+      current = Date.now()
+      if (current - last > 500) {
+        await new Promise<void>((acc) => { console.log('pop'); acc() })
+        console.log(`Popping event loop ${count}`)
+        last = current;
+      }
+      if (this.arrested) {
+        break;
+      }
+      // console.log(`Processing icd ${row[0]} ${count}/${data.rows.length}`)
+      count++
+    }
+    let disease = new Disease(description, deathsByAge)
+    this.deathsByICD.set(description.icdCode, disease)
+    this.diseaseDirectory.set(description.icdCode, description)
+    console.log(`Covid Data ${description.icdCode}`, deathsByAge)
+    this.notifyListeners(); 
+    return deathsByAge
 
   }
 
@@ -358,12 +398,12 @@ export class Database {
   async buildDataChannel<DirectoryName extends string, ChannelName extends string>(id: DataChannelStreaming_ID<DirectoryName, ChannelName>, color: FColor, side: 'Client' | 'Server') {
     if (side == 'Server') {
       let out: DataChannelStreaming<DirectoryName, ChannelName> = new DataChannelStreaming(id, color, async (request) => {
-        let resp = await fetch(`http://${window.location.hostname}:5001/gdsn3-22/us-central1/DataChannels?id=${id}`)
+        let resp = await fetch(`http://${window?.location.hostname}:5001/gdsn3-22/us-central1/DataChannels?id=${id}`)
         return null
       })
     } else {
       let out: DataChannelStreaming<DirectoryName, ChannelName> = new DataChannelStreaming(id, color, async (request) => {
-        let resp = await fetch(`http://${window.location.hostname}:5001/gdsn3-22/us-central1/DataChannels?id=${id}`)
+        let resp = await fetch(`http://${window?.location.hostname}:5001/gdsn3-22/us-central1/DataChannels?id=${id}`)
         return null
       })
     }
@@ -375,7 +415,7 @@ export interface FileError {
   error: string
 }
 export function isFileError(obj: Object): obj is FileError {
-  return typeof obj['error'] == 'string'
+  return typeof (obj as any)['error'] == 'string'
 }
 export interface FileAccessor {
   readFile<T>(path: string): Promise<T | FileError>

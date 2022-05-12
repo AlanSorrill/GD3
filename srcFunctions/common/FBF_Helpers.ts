@@ -101,7 +101,18 @@ String.prototype.isNumber = function () {
 export function ensureFBF_Helpers() {
     console.log()
 }
-
+export function maxOfList(vals: number[]) {
+    if (vals.length == 0) {
+        return 0
+    }
+    let maxValue = vals[0]
+    for (let i = 1; i < vals.length; i++) {
+        if(!Number.isNaN(vals[i])){
+            maxValue = Math.max(maxValue, vals[i])
+        }
+    }
+    return maxValue
+}
 export function flatten<T>(arr: T[][]): T[] {
     let out: T[] = []
     for (let i = 0; i < arr.length; i++) {

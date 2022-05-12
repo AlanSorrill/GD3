@@ -9,6 +9,7 @@
         "inlineSourceMap": true,
         "outDir": "clientBuild",
         "skipLibCheck": true,
+        
         "declaration": true,
         "paths":{
             "timers": ["./node_modules/timers-browserify"],

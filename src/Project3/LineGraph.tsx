@@ -1,7 +1,7 @@
 import { BristolBoard, BristolCursor, BristolFont, BristolHAlign, BristolVAlign, lerp, MouseDragListener, MouseMovementListener, MouseWheelListener, RawPointerData, RawPointerMoveData, RawPointerScrollData, SpecialKey, UIElement, UIFrameResult, UIFrame_CornerWidthHeight } from "bristolboard";
 import React from "react";
 import { AgeGroupDataChannels, DataChannel, Disease, DiseaseDisplay, MonthNames } from "../../srcFunctions/common/WonderData";
-import { EnglishNumbers, maxOfList, minOfList } from "../Helper";
+import { EnglishNumbers,  minOfList } from "../Helper";
 
 export interface LineGraph_Props {
     style: React.CSSProperties & {
@@ -51,7 +51,12 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
     }
     onDrawForeground(frame: UIFrameResult, deltaTime: number): void {
 
-
+        this.brist.textAlign(BristolHAlign.Left, BristolVAlign.Top)
+        this.brist.textSize(20)
+        this.brist.fillColor(fColor.darkText[0])
+        this.brist.ctx.fillText(new Date(this.startTime).toLocaleString(), frame.left + 10, frame.top + 10)
+        this.brist.textAlign(BristolHAlign.Right, BristolVAlign.Top)
+        this.brist.ctx.fillText(new Date(this.endTime).toLocaleString(), frame.right - 10, frame.top + 10)
     }
     get footerHeight() {
         return this.getHeight() * 0.1
@@ -110,8 +115,8 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
     }
     maxValue: number = 10
     minValue: number = 0
-    startTime: number = 0
-    endTime: number = 10
+    startTime: number = new Date(2019, 1, 1).getTime()
+    endTime: number = new Date(2024, 1, 1).getTime()
     startHandle: UILineHandle
     endHandle: UILineHandle
     lineArea: UILineArea;
@@ -124,8 +129,9 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
     constructor(id: string, frame: UIFrame_CornerWidthHeight, brist: BristolBoard<UILineGraph>, state: LineGraph_State, props: LineGraph_Props) {
         super(id, frame, brist);
         console.log(`Line Graph Constructed`)
-        this.startHandle = new UILineHandle({ initTime: 0 }, this)
-        this.endHandle = new UILineHandle({ initTime: 0 }, this)
+        this.startHandle = new UILineHandle({ initTime: new Date(2019, 1, 1).getTime()
+            }, this)
+        this.endHandle = new UILineHandle({ initTime:  new Date(2024, 1, 1).getTime() }, this)
         this.lineArea = new UILineArea(this)
         this.addChild(this.lineArea)
         this.addChild(this.startHandle)
@@ -321,23 +327,23 @@ export class UILineArea extends UIElement {
 
         if (this.sources) {
             this.brist.noFill()
-            this.sources.forEach((data: [Disease,DiseaseDisplay]) => {
-               data[1].channels.forEach((channelDisplay)=>{
-                this.brist.strokeColor(channelDisplay[1])
-                this.brist.strokeWeight(4)
-                this.brist.ctx.beginPath();
-                let channel = data[0].getChannel(channelDisplay[0])
-                channel?.forRange(this.graph.startTime, this.graph.endTime, (time: number, value: number, count: number) => {
-                    if (count == 0) {
-                        this.brist.ctx.moveTo(this.graph.timeToX(time, frame), this.valueToY(value, frame))
+            this.sources.forEach((data: [Disease, DiseaseDisplay]) => {
+                data[1].channels.forEach((channelDisplay) => {
+                    this.brist.strokeColor(channelDisplay[1])
+                    this.brist.strokeWeight(4)
+                    this.brist.ctx.beginPath();
+                    let channel = data[0].getChannel(channelDisplay[0])
+                    channel?.forRange(this.graph.startTime, this.graph.endTime, (time: number, value: number, count: number) => {
+                        if (count == 0) {
+                            this.brist.ctx.moveTo(this.graph.timeToX(time, frame), this.valueToY(value, frame))
 
-                    } else {
-                        this.brist.ctx.lineTo(this.graph.timeToX(time, frame), this.valueToY(value, frame))
+                        } else {
+                            this.brist.ctx.lineTo(this.graph.timeToX(time, frame), this.valueToY(value, frame))
 
-                    }
+                        }
+                    })
+                    this.brist.ctx.stroke()
                 })
-                this.brist.ctx.stroke()
-               })
             })
             this.brist.ctx.beginPath();
 

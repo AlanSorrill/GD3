@@ -47,10 +47,11 @@
         let searchParams = new URLSearchParams(window.location.search)
         let project = searchParams.get('project');
 
-        let searchParamObj = {}
+        window['searchParamObj'] = {}
         for (let entry of searchParams.entries()) {
             searchParamObj[entry[0].toLowerCase()] = entry[1]
         }
+        console.log(searchParamObj)
 
         if (project == null) {
             project = 1;

@@ -64,27 +64,27 @@ export class Device {
         let key = `${deviceType}${orientation.capitolizeFirstLetter()}`
         // console.log(key)
         if (key in map) {
-            return map[key];
+            return (map as any)[key];
         }
         key = `${deviceType}${Oposite(orientation).capitolizeFirstLetter()}`
         if (key in map) {
-            return map[key]
+            return (map as any)[key]
         }
         key = `${NextBiggerDevice(deviceType)}${orientation.capitolizeFirstLetter()}`
         if (key in map) {
-            return map[key]
+            return (map as any)[key]
         }
         key = `${NextBiggerDevice(deviceType)}${Oposite(orientation).capitolizeFirstLetter()}`
         if (key in map) {
-            return map[key]
+            return (map as any)[key]
         }
         key = `${NextBiggerDevice(NextBiggerDevice(deviceType))}${orientation.capitolizeFirstLetter()}`
         if (key in map) {
-            return map[key]
+            return (map as any)[key]
         }
         key = `${NextBiggerDevice(NextBiggerDevice(deviceType))}${Oposite(orientation).capitolizeFirstLetter()}}`
         if (key in map) {
-            return map[key]
+            return (map as any)[key]
         }
         return null;
     }
@@ -104,10 +104,10 @@ export function evalOptionalFunc<T>(input: OptFunc<T>, def: T = null): T {
 export function CombineCopyObjects<A, B>(a: A, b: B): A & B {
     let out: A & B = {} as any;
     Object.entries(a).forEach((value: [string, any]) => {
-        out[value[0]] = value[1];
+        (out)[value[0]] = value[1];
     })
     Object.entries(b).forEach((value: [string, any]) => {
-        out[value[0]] = value[1];
+        (out)[value[0]] = value[1];
     })
     return out;
 }
@@ -151,8 +151,8 @@ declare global {
 //         return defaultValue;
 //     }
 // }
-Map.prototype.pairs = function<K,V>(){
-    let out = []
+Map.prototype.pairs = function<K,V>(): [K,V][]{
+    let out: [K,V][] = []
     let ths = this as Map<K,V>
     for(let key of ths.keys()){
         out.push([key, ths.get(key)])
@@ -172,9 +172,9 @@ Array.prototype.limit = function<T>(count: number){
 }
 export function ToPairs<V>(obj: Object): Array<[string, V]> {
     let keys = Object.keys(obj)
-    let out = []
+    let out: Array<[string, V]> = []
     for (let i = 0; i < keys.length; i++) {
-        out.push([keys[i], obj[keys[i]]])
+        out.push([keys[i], (obj as any)[keys[i]]])
     }
     return out
 }
@@ -496,16 +496,7 @@ export class RectOnScreen {
         return (0).alphaInRange(box.top, box.bottom - window.innerHeight)
     }
 }
-export function maxOfList(vals: number[]) {
-    if (vals.length == 0) {
-        return 0
-    }
-    let maxValue = vals[0]
-    for (let i = 1; i < vals.length; i++) {
-        maxValue = Math.max(maxValue, vals[i])
-    }
-    return maxValue
-}
+
 export function minOfList(vals: number[]) {
     if (vals.length == 0) {
         return 0

@@ -11,7 +11,7 @@ import { WonderClient } from './WonderClient';
 import { ensureBristolImports } from 'bristolboard';
 import { Database } from '../../srcFunctions/common/WonderData/WonderDataImports';
 
-import * as FirebaseStorage from 'firebase/storage'
+const FirebaseStorage = require('firebase/storage');
 import { initializeApp } from "firebase/app";
 
 
@@ -43,13 +43,13 @@ ImportGoogleFont('Ubuntu:wght@400;700')
 
 window['WonderRequest'] = WonderRequest;
 window['WonderClient'] = WonderClient
-window['DeWonder'] = DeWonder;
+window['DeWonder'] = DeWonder; 
 window['database'] = new Database({
     async readFile<T>(path: string): Promise<T | { error: string }> {
-        if (path.startsWith('./')) {
+        if (path.startsWith('./')) { 
             path = path.substring(2)
         }
-        if (path.startsWith('/')) {
+        if (path.startsWith('/')) { 
             path = path.substring(1)
         }
 
@@ -68,6 +68,13 @@ window['database'] = new Database({
         return resultJson;
     },
     async writeFile<T>(path: string, data: T | string): Promise<'success' | string> {
+        if (path.startsWith('./')) {
+            path = path.substring(2)
+          }
+          if (path.startsWith('/')) {
+            path = path.substring(1)
+          }
+        console.log(`-------WRITING TO FILE ${path}-----------`)
         let reference = FirebaseStorage.ref(firebaseStorage, "data/" + path);
 
         return new Promise((acc)=>{FirebaseStorage.uploadString(reference, typeof data == 'string' ? data : JSON.stringify(data)).then(()=>acc('success')).catch(err=>{acc(JSON.stringify(err))})})

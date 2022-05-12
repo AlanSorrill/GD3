@@ -102,7 +102,7 @@ const functionsConfig: Configuration = {
     output: {
         filename: '[name].js',
         publicPath: '/',
-        libraryTarget: 'commonjs',
+        libraryTarget: 'this',
         path: path.resolve(__dirname, 'functions'),
         // libraryTarget: 'commonjs',
         // chunkFilename: '[id].[chunkhash].js'
