@@ -6,7 +6,7 @@ import fetch from 'node-fetch'
 // import './common/FBF_Helpers'
 // import { DeWonder, ExampleRequest, WonderQueryParam_Util, WonderRequest } from './common/WonderData'
 // import { exec } from 'child_process'
-// import * as crypto from 'crypto'
+import * as crypto from 'crypto'
 // import { Database } from './common/WonderData/WonderDataImports';
 // import { initializeApp, cert, ServiceAccount } from 'firebase-admin/app';
 // import * as FirebaseStorage from 'firebase-admin/storage';
@@ -128,46 +128,46 @@ import fetch from 'node-fetch'
 //   res.send(data)
 // })
 
-// function requestToFileName(fetchBody: string) {
+function requestToFileName(fetchBody: string) {
 
-//   console.log(`Req to file name\n${fetchBody}`)
-//   return crypto.createHash('md5').update(fetchBody).digest("hex");
-// }
-// export const WonderProxy = functions.https.onRequest(async (req, res) => {
-//   let fetchBody = req.body['request_xml']
-//   // console.log(`Fetch body: ${fetchBody}`)
-//   let fileName = requestToFileName(fetchBody)
-//   // let fileDirectory = path.resolve(__dirname, `../data/xml/`)
-//   // if (!fs.existsSync(fileDirectory)) {
-//   //   fs.mkdirSync(fileDirectory)
-//   // }
-//   // let exportPath = path.resolve(fileDirectory, `${fileName}.xml`);
-//   if (await database.fileAccessor.exists(fileName)) {
-//     console.log(`Using cache for request ${fileName}`)
-//     res.setHeader('Content-Type', 'application/xml')
-//     res.setHeader('Access-Control-Allow-Origin', '*')
+  console.log(`Req to file name\n${fetchBody}`)
+  return crypto.createHash('md5').update(fetchBody).digest("hex");
+}
+export const WonderProxy = functions.https.onRequest(async (req, res) => {
+  let fetchBody = req.body['request_xml']
+  // console.log(`Fetch body: ${fetchBody}`)
+  // let fileName = requestToFileName(fetchBody)
+  // let fileDirectory = path.resolve(__dirname, `../data/xml/`)
+  // if (!fs.existsSync(fileDirectory)) {
+  //   fs.mkdirSync(fileDirectory)
+  // }
+  // let exportPath = path.resolve(fileDirectory, `${fileName}.xml`);
+  // if (await database.fileAccessor.exists(fileName)) {
+  //   console.log(`Using cache for request ${fileName}`)
+  //   res.setHeader('Content-Type', 'application/xml')
+  //   res.setHeader('Access-Control-Allow-Origin', '*')
 
-//     res.send(await database.fileAccessor.readFile(fileName))
-//     return;
-//   }
-//   // console.log(`Sending query to wonder:\n${fetchBody}`)
-//   let result = await fetch(`https://wonder.cdc.gov/controller/datarequest/D76`, {
-//     method: 'POST',
-//     body: `request_xml=${fetchBody}`,
-//     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/xml' },
-//     // mode: 'no-cors'
-//   })
+  //   res.send(await database.fileAccessor.readFile(fileName))
+  //   return;
+  // }
+  // console.log(`Sending query to wonder:\n${fetchBody}`)
+  let result = await fetch(`https://wonder.cdc.gov/controller/datarequest/D76`, {
+    method: 'POST',
+    body: `request_xml=${fetchBody}`,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/xml' },
+    // mode: 'no-cors'
+  })
 
-//   let resultText = await result.text();
+  let resultText = await result.text();
 
 
-//   // console.log(`saving to file: ${exportPath}`)
-//   database.fileAccessor.writeFile(fileName, resultText)
+  // console.log(`saving to file: ${exportPath}`)
+  // database.fileAccessor.writeFile(fileName, resultText)
 
-//   res.setHeader('Content-Type', 'application/xml')
-//   res.setHeader('Access-Control-Allow-Origin', '*')
-//   res.send(resultText)
-// })
+  res.setHeader('Content-Type', 'application/xml')
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.send(resultText)
+})
 // export const Data = functions.https.onRequest(async (req, resp) => {
 
 //   resp.setHeader('Content-Type', 'application/json')

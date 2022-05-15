@@ -26,7 +26,7 @@ export class LineGraph extends React.Component<LineGraph_Props, LineGraph_State>
             this.bristol.current.rootElement?.setState(this.state)
             this.bristol.current.rootElement?.setProps(this.props)
         }
-    }
+    } 
     render(): React.ReactNode {
         let ths = this;
         return <div style={this.props.style}>
@@ -113,7 +113,7 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         // }
 
     }
-    maxValue: number = 10
+    maxValue: number = 200
     minValue: number = 0
     startTime: number = new Date(2019, 1, 1).getTime()
     endTime: number = new Date(2024, 1, 1).getTime()

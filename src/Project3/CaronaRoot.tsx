@@ -14,11 +14,12 @@ export interface CaronaRoot_State {
     diseaseDescriptions: Array<DiseaseDescription>
     // diseases: Array<[string, Disease]>
     displays: Array<[Disease, DiseaseDisplay]>
+    showPopup: boolean
 }
 export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_State> {
     constructor(props: CaronaRoot_Props) {
         super(props);
-        this.state = { values: [], redPill: false, diseaseDescriptions: [], displays: [] }
+        this.state = { values: [], redPill: false, diseaseDescriptions: [], displays: [], showPopup: false }
     }
 
     listenerIndex: number
@@ -37,7 +38,7 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
         // database.pullDeathsByCause()
 
         this.setState({ diseaseDescriptions: database.diseaseDirectory.toArrayWithKeys().sort((a, b) => (b[1].maxPerMonth - a[1].maxPerMonth)).map(i => i[1]) })
-
+        setTimeout(() => { ths.setState({ showPopup: true }) }, 1000 + Math.random() * 1000 * 10)
 
     }
     componentDidUpdate(prevProps: Readonly<CaronaRoot_Props>, prevState: Readonly<CaronaRoot_State>, snapshot?: any): void {
@@ -66,6 +67,25 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
             top: 0, left: 0,
             display: 'flex', flexDirection: 'column',
         }}>
+            <div style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: this.state.showPopup ? 'flex' : 'none', flexDirection: 'column' }}>
+                <div style={{ flexGrow: 1 }} />
+                <div style={{ display: 'flex' }}>
+                    <div style={{ flexGrow: 1 }} />
+                    <div style={{ position: 'relative', zIndex: 4 }}>
+                        <img style={{ width: '30vw', display: 'relative' }} src="./project3/Popup.png">
+
+                        </img>
+                        <div style={{ cursor: 'pointer', position: 'absolute', bottom: 0, left: 0, width: '50%', height: '50%' }} onClick={() => {
+                            this.setState({ showPopup: false, redPill: true });
+                        }}></div>
+                        <div style={{ cursor: 'pointer', position: 'absolute', bottom: 0, right: 0, width: '50%', height: '50%' }} onClick={() => {
+                            this.setState({ showPopup: false });
+                        }}></div>
+                    </div>
+                    <div style={{ flexGrow: 1 }} />
+                </div>
+                <div style={{ flexGrow: 1 }} />
+            </div>
             <div style={{ flexGrow: 2, display: 'flex', padding: 64, paddingBottom: 0, maxHeight: '40vh' }}>
                 <div style={{ flexGrow: 3, display: 'flex' }}>
                     {/* <img src="./project3/NavSpinny.png" style={{height: '100%'}}/> */}
@@ -326,7 +346,7 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
                 }}>
                     <div style={{
                         backgroundColor: 'white',
-                         borderRadius: 8, boxShadow: "2px 2px 3px #cccccccc",//borderStyle: 'solid', borderWidth: 2,
+                        borderRadius: 8, boxShadow: "2px 2px 3px #cccccccc",//borderStyle: 'solid', borderWidth: 2,
                         maxHeight: '50vh', overflowY: 'scroll'
                     }}>
                         {this.state.allDiseases.sort((a, b) => (b.maxPerMonth - a.maxPerMonth)).limit(50).filter((disease: DiseaseDescription) => (
@@ -357,7 +377,7 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
                         })}
                     </div>
                     <div style={{ display: this.state.isPullingMore ? 'inherit' : 'none', height: 16, marginLeft: 8, marginRight: 8, position: 'relative' }}>
-                        <div style={{position: 'absolute', backgroundColor: fColor.amber.base.toHexString(), top: 0, left: 0, bottom: 0, width: `${this.state.pullProgress * 100}%`}}/>
+                        <div style={{ position: 'absolute', backgroundColor: fColor.amber.base.toHexString(), top: 0, left: 0, bottom: 0, width: `${this.state.pullProgress * 100}%` }} />
                     </div>
                     <div style={{ display: 'flex', paddingTop: 16 }}>
                         <div style={{ flexGrow: 1 }} />
