@@ -1,7 +1,7 @@
 import { BristolBoard, BristolCursor, BristolFont, BristolHAlign, BristolVAlign, lerp, MouseDragListener, MouseMovementListener, MouseWheelListener, RawPointerData, RawPointerMoveData, RawPointerScrollData, SpecialKey, UIElement, UIFrameResult, UIFrame_CornerWidthHeight } from "bristolboard";
 import React from "react";
 import { AgeGroupDataChannels, DataChannel, Disease, DiseaseDisplay, MonthNames } from "../../srcFunctions/common/WonderData";
-import { EnglishNumbers,  minOfList } from "../Helper";
+import { EnglishNumbers, minOfList } from "../Helper";
 
 export interface LineGraph_Props {
     style: React.CSSProperties & {
@@ -9,13 +9,15 @@ export interface LineGraph_Props {
     }
     sources: Array<[Disease, DiseaseDisplay]>
     padding: number
+    onFreshAgrigate: (agrigateData: Array<[string, Array<[string, number, string]>]>) => void
 }
 export interface LineGraph_State {
+    // agrigateData: Array<[string, Array<[string, number, string]>]>
 }
 export class LineGraph extends React.Component<LineGraph_Props, LineGraph_State>{
     constructor(props: LineGraph_Props) {
         super(props);
-        this.state = { source: null }
+        this.state = { agrigateData: null }
     }
     bristol: React.RefObject<BristolBoard<UILineGraph>> = React.createRef()
     componentDidUpdate(prevProps: Readonly<LineGraph_Props>, prevState: Readonly<LineGraph_State>, snapshot?: any): void {
@@ -23,15 +25,17 @@ export class LineGraph extends React.Component<LineGraph_Props, LineGraph_State>
             if (!window['LineGraphBrist']) {
                 window['LineGraphBrist'] = this.bristol.current
             }
-            this.bristol.current.rootElement?.setState(this.state)
-            this.bristol.current.rootElement?.setProps(this.props)
+            this.bristol.current.rootElement?.updateState(this.state)
+            this.bristol.current.rootElement?.updateProps(this.props)
         }
-    } 
+    }
     render(): React.ReactNode {
         let ths = this;
         return <div style={this.props.style}>
             <BristolBoard<UILineGraph> ref={this.bristol} style={{ background: 'transparent', height: '100%' }} buildRootElement={async (brist) => {
-                return new UILineGraph('ROOT', new UIFrame_CornerWidthHeight({ x: () => this.props.padding, y: () => this.props.padding, width: () => brist.getWidth() - (ths.props.padding * 2), height: () => brist.getHeight() - (ths.props.padding * 2) }), brist, this.state, this.props);
+                return new UILineGraph('ROOT', new UIFrame_CornerWidthHeight({ x: () => this.props.padding, y: () => this.props.padding, width: () => brist.getWidth() - (ths.props.padding * 2), height: () => brist.getHeight() - (ths.props.padding * 2) }), brist, async (freshState: Partial<LineGraph_State>) => (
+                    new Promise((acc) => { ths.setState(freshState as LineGraph_State, acc) })
+                ))
             }} />
         </div>
         return
@@ -41,6 +45,7 @@ export class LineGraph extends React.Component<LineGraph_Props, LineGraph_State>
 export class UILineGraph extends UIElement implements MouseDragListener, MouseWheelListener {
     props: LineGraph_Props
     state: LineGraph_State;
+    stateSetter: (freshState: Partial<LineGraph_State>) => Promise<void>;
     onDrawBackground(frame: UIFrameResult, deltaTime: number): void {
         this.brist.fillColor(fColor.grey.lighten4)
         this.brist.strokeColor(fColor.black)
@@ -67,12 +72,15 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         return frame.left + time.alphaInRange(this.startTime, this.endTime, false) * frame.width
 
     }
+    setState(state: Partial<LineGraph_State>) {
+        this.stateSetter(state);
+    }
 
 
-
-    setState(state: LineGraph_State) {
+    updateState(state: LineGraph_State) {
         console.log(`UIElement recieved state`, state)
         this.state = state;
+        this.agrigate();
     }
     get sources() {
         return this.props?.sources;
@@ -81,9 +89,16 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         return this.props?.padding
     }
     initialLoad: boolean = true
-    setProps(props: LineGraph_Props) {
+
+
+
+
+
+    // lastUpdate : {start: number, end: number, sourceCount: 0}
+    updateProps(props: LineGraph_Props) {
         console.log(`UIElement recieved props`, props)
         this.props = props
+        this.agrigate();
         // if (this.sources?.length > 0 && this.initialLoad) {
         //     this.sources.forEach(disease => {
         //         let ageGroups = Object.keys(disease.deathsByAge)
@@ -113,6 +128,33 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         // }
 
     }
+    lastAgrigateMeta: { start: number, end: number, lastChannelCount: number } = { start: 0, end: 0, lastChannelCount: 0 }
+    agrigate() {
+        if (this.endTime >= this.startTime && this.state && this.props) {
+            let ths = this;
+            let channelCount = 0;
+            let agrigateData: Array<[string, Array<[string, number, string]>]> = this.sources?.map((source: [Disease, DiseaseDisplay]) => {
+                return [source[0].description.technicalName, source[1].channels.map((channel) => {
+                    let totalValue = 0;
+                    let totalCount = 0;
+                    source[0].getChannel(channel[0]).forRange(ths.startHandle.currentTime, ths.endHandle.currentTime, (time, value, count) => {
+                        totalCount++;
+                        totalValue += value;
+                    })
+                    channelCount++;
+                    return [channel[0].split(`~`)[1], totalValue, channel[1]];
+                })]
+            })
+            if (channelCount != this.lastAgrigateMeta.lastChannelCount || ths.lastAgrigateMeta.start != ths.startHandle.currentTime || ths.lastAgrigateMeta.end != ths.endHandle.currentTime) {
+                console.log(`Totals---------------`, agrigateData)
+                ths.props.onFreshAgrigate(agrigateData)
+                // ths.setState({ agrigateData: agrigateData })
+                ths.lastAgrigateMeta = { start: ths.startHandle.currentTime, end: ths.endHandle.currentTime, lastChannelCount: channelCount }
+            }
+        } else {
+            console.log(this.state, this.props)
+        }
+    }
     maxValue: number = 200
     minValue: number = 0
     startTime: number = new Date(2019, 1, 1).getTime()
@@ -126,17 +168,29 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
     get heightInValue() {
         return this.maxValue - this.minValue
     }
-    constructor(id: string, frame: UIFrame_CornerWidthHeight, brist: BristolBoard<UILineGraph>, state: LineGraph_State, props: LineGraph_Props) {
+    constructor(id: string, frame: UIFrame_CornerWidthHeight, brist: BristolBoard<UILineGraph>, stateSetter: (freshState: Partial<LineGraph_State>) => Promise<void>) {
         super(id, frame, brist);
         console.log(`Line Graph Constructed`)
-        this.startHandle = new UILineHandle({ initTime: new Date(2019, 1, 1).getTime()
-            }, this)
-        this.endHandle = new UILineHandle({ initTime:  new Date(2024, 1, 1).getTime() }, this)
+        this.stateSetter = stateSetter;
+        let ths = this;
+        this.startHandle = new UILineHandle({
+            initTime: new Date(2019, 1, 1).getTime(), onChange(value) {
+                console.log(value);
+                ths.agrigate();
+            },
+        }, this)
+        this.endHandle = new UILineHandle({
+            initTime: new Date(2024, 1, 1).getTime(), onChange(value) {
+                ths.agrigate();
+            },
+        }, this)
+
         this.lineArea = new UILineArea(this)
         this.addChild(this.lineArea)
         this.addChild(this.startHandle)
         this.addChild(this.endHandle)
     }
+
     mouseWheel(evt: RawPointerScrollData): boolean {
         let amount = (evt.amount > 0 ? 1 : -1) * 0.05
         if (this.brist.isKeyPressed(SpecialKey.Control)) {
@@ -170,6 +224,7 @@ export class UILineGraph extends UIElement implements MouseDragListener, MouseWh
         return true;
     }
     onDragEnd(event: RawPointerData | RawPointerMoveData): boolean {
+        this.agrigate()
         return true;
     }
 
@@ -359,14 +414,17 @@ export class UILineArea extends UIElement {
 
 export interface UILineHandle_Options {
     initTime: number
+    onChange: (value: number) => void
 }
 export class UILineHandle extends UIElement implements MouseDragListener, MouseMovementListener {
     frame: UIFrame_CornerWidthHeight
     graph: UILineGraph;
+    onChange: (value: number) => void;
     constructor(options: UILineHandle_Options, graph: UILineGraph) {
         super(UIElement.createUID('LineHandle'), new UIFrame_CornerWidthHeight({ x: 0, y: 0, width: 32, height: () => graph.getHeight() }), graph.brist)
         this.graph = graph
         this.currentTime = options.initTime
+        this.onChange = options.onChange;
         let ths = this;
         this.frame.description.x = () => {
             return graph.timeToX(ths.currentTime) - (ths.getWidth() / 2)
@@ -377,6 +435,7 @@ export class UILineHandle extends UIElement implements MouseDragListener, MouseM
                     ths.isOverTab(x, y)
                 ))
         }
+        this.onChange(this.currentTime)
 
     }
     isOverTab(x: number, y: number) {
@@ -417,10 +476,13 @@ export class UILineHandle extends UIElement implements MouseDragListener, MouseM
     mouseDragged(evt: RawPointerMoveData): boolean {
         this.isMouseTarget = true
         this.currentTime -= this.graph.widthInTime * (evt.delta[0] / this.graph.getWidth())
+
+        this.graph.agrigate()
         return true;
     }
     onDragEnd(event: RawPointerData | RawPointerMoveData): boolean {
         this.isMouseTarget = false
+        this.onChange(this.currentTime)
         return true;
     }
     onDrawBackground(frame: UIFrameResult, deltaTime: number): void {

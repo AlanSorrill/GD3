@@ -7,7 +7,6 @@
         "test": "echo \"Error: no test specified\" && exit 1",
         "lint": "eslint.js"
     },
-
     "author": "",
     "license": "ISC",
     "dependencies": {
@@ -16,6 +15,7 @@
         "@types/offscreencanvas": "^2019.6.4",
         "bristolboard": "file:../BristolBoard",
         "buffer": "^6.0.3",
+        "chart.js": "^3.7.1",
         "css-loader": "^6.6.0",
         "firebase": "^9.8.1",
         "firebase-admin": "^10.0.2",
@@ -25,6 +25,7 @@
         "node-fetch": "^2.6.7",
         "npm": "^8.7.0",
         "react": "^17.0.2",
+        "react-chartjs-2": "^4.1.0",
         "react-dom": "^17.0.2",
         "sorted-btree": "^1.8.0",
         "stream": "^0.0.2",
@@ -40,7 +41,6 @@
         "webpack-node-externals": "^3.0.0",
         "xml2js": "^0.4.23"
     },
-
     "devDependencies": {
         "@types/react": "^17.0.38",
         "@types/react-dom": "^17.0.11"
