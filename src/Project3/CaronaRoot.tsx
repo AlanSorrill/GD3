@@ -5,7 +5,10 @@ import { RedPillIndex } from "./RedPill/RedPillIndex";
 import { BristolBoard, FColor, fColor, lerp, UIElement, UIFrameResult, UIFrame_CornerWidthHeight } from "bristolboard";
 import { LineGraph } from "./LineGraph";
 import { Database, DataChannel, Disease, DiseaseChannelId, DiseaseDescription, DiseaseDisplay } from "../../srcFunctions/common/WonderData/WonderDataImports";
+import { Doughnut } from 'react-chartjs-2'
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, ChartData, ChartDataset } from 'chart.js';
 
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 export interface CaronaRoot_Props { }
 export interface CaronaRoot_State {
@@ -14,11 +17,14 @@ export interface CaronaRoot_State {
     diseaseDescriptions: Array<DiseaseDescription>
     // diseases: Array<[string, Disease]>
     displays: Array<[Disease, DiseaseDisplay]>
+    showPopup: boolean
+    agrigateData:  Array<[string, Array<[string, number, string]>]>
 }
+
 export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_State> {
     constructor(props: CaronaRoot_Props) {
         super(props);
-        this.state = { values: [], redPill: false, diseaseDescriptions: [], displays: [] }
+        this.state = {agrigateData: [], values: [], redPill: false, diseaseDescriptions: [], displays: [], showPopup: false }
     }
 
     listenerIndex: number
@@ -37,7 +43,7 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
         // database.pullDeathsByCause()
 
         this.setState({ diseaseDescriptions: database.diseaseDirectory.toArrayWithKeys().sort((a, b) => (b[1].maxPerMonth - a[1].maxPerMonth)).map(i => i[1]) })
-
+        setTimeout(() => { ths.setState({ showPopup: true }) }, 1000 + Math.random() * 1000 * 10)
 
     }
     componentDidUpdate(prevProps: Readonly<CaronaRoot_Props>, prevState: Readonly<CaronaRoot_State>, snapshot?: any): void {
@@ -49,8 +55,45 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
     componentWillUnmount(): void {
         database.removeListener(this.listenerIndex)
     }
+    getDoughnutData(): ChartData<"doughnut", number[], string> {
+        if (!this.state.agrigateData) {
+            return {
+                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                datasets: [{
+                    label: "Stuff",
+                    data: [12, 19, 3, 5, 2, 3],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)',
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)',
+                    ],
+                    borderWidth: 1,
+                }],
+            }
+        }
 
+        let labels = this.state.agrigateData.map((value: [string, [string, number, string][]]) => (value[1].map(v => (v[0])))).flat()
+        return {
+            labels: labels, datasets: this.state.agrigateData.map(value => ({
+                label: value[0],
+                data: value[1].map(v => v[1]),
+                backgroundColor: value[1].map(v => v[2])
+            } as ChartDataset<"doughnut", number[]>))
+        } as ChartData<"doughnut", number[], string>
+    }
     squareDiv: React.RefObject<HTMLDivElement> = React.createRef()
+    lineGraph: React.RefObject<LineGraph> = React.createRef()
     render() {
         let ths = this;
         if (this.state.redPill) {
@@ -66,6 +109,25 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
             top: 0, left: 0,
             display: 'flex', flexDirection: 'column',
         }}>
+            <div style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: this.state.showPopup ? 'flex' : 'none', flexDirection: 'column' }}>
+                <div style={{ flexGrow: 1 }} />
+                <div style={{ display: 'flex' }}>
+                    <div style={{ flexGrow: 1 }} />
+                    <div style={{ position: 'relative', zIndex: 4 }}>
+                        <img style={{ width: '30vw', display: 'relative' }} src="./project3/Popup.png">
+
+                        </img>
+                        <div style={{ cursor: 'pointer', position: 'absolute', bottom: 0, left: 0, width: '50%', height: '50%' }} onClick={() => {
+                            this.setState({ showPopup: false, redPill: true });
+                        }}></div>
+                        <div style={{ cursor: 'pointer', position: 'absolute', bottom: 0, right: 0, width: '50%', height: '50%' }} onClick={() => {
+                            this.setState({ showPopup: false });
+                        }}></div>
+                    </div>
+                    <div style={{ flexGrow: 1 }} />
+                </div>
+                <div style={{ flexGrow: 1 }} />
+            </div>
             <div style={{ flexGrow: 2, display: 'flex', padding: 64, paddingBottom: 0, maxHeight: '40vh' }}>
                 <div style={{ flexGrow: 3, display: 'flex' }}>
                     {/* <img src="./project3/NavSpinny.png" style={{height: '100%'}}/> */}
@@ -76,11 +138,21 @@ export class CaronaRoot extends React.Component<CaronaRoot_Props, CaronaRoot_Sta
                     }} />
                     <div style={{ flexGrow: 1 }} />
                 </div>
-                <div style={{ flexGrow: 2, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundImage: `url("./project3/tempChart.PNG")` }} />
+                <div style={{ flexGrow: 2, position: 'relative' }}>
+
+                    <div style={{ position: "absolute", right: 0, left: 0, top: 0, bottom: 0, transform: "translate(0px, -64px)" }}>
+                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                            <Doughnut data={this.getDoughnutData()} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} />
+                        </div>
+
+                    </div>
+                </div>
             </div>
             {/* <div style={{backgroundColor: 'purple', width: 500, height: 500}}></div> */}
 
-            <LineGraph style={{ background: 'transparent', flexGrow: 3 }} sources={this.state.displays} padding={0} />
+            <LineGraph ref={this.lineGraph} style={{ background: 'transparent', flexGrow: 3 }} sources={this.state.displays} padding={0} onFreshAgrigate={function (agrigateData: [string, [string, number, string][]][]): void {
+               ths.setState({agrigateData: agrigateData})
+            } } />
 
 
         </div >
@@ -125,7 +197,9 @@ export class DiseaseList extends React.Component<DiseaseList_Props, DiseaseList_
         let ths = this
         return <div ref={this.diseaseSearchContainer} style={{
             padding: 32,
-            backgroundColor: fColor.grey.lighten2.toHexString(),
+            // backgroundColor: fColor.grey.lighten1.toHexString(),
+            border: 'solid 2px #cccccc',
+            borderRadius: 4,
             minWidth: '15vw'
         }}>
 
@@ -326,7 +400,7 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
                 }}>
                     <div style={{
                         backgroundColor: 'white',
-                         borderRadius: 8, boxShadow: "2px 2px 3px #cccccccc",//borderStyle: 'solid', borderWidth: 2,
+                        borderRadius: 8, boxShadow: "2px 2px 3px #cccccccc",//borderStyle: 'solid', borderWidth: 2,
                         maxHeight: '50vh', overflowY: 'scroll'
                     }}>
                         {this.state.allDiseases.sort((a, b) => (b.maxPerMonth - a.maxPerMonth)).limit(50).filter((disease: DiseaseDescription) => (
@@ -357,7 +431,7 @@ export class DiseaseSearch extends React.Component<DiseaseSearch_Props, DiseaseS
                         })}
                     </div>
                     <div style={{ display: this.state.isPullingMore ? 'inherit' : 'none', height: 16, marginLeft: 8, marginRight: 8, position: 'relative' }}>
-                        <div style={{position: 'absolute', backgroundColor: fColor.amber.base.toHexString(), top: 0, left: 0, bottom: 0, width: `${this.state.pullProgress * 100}%`}}/>
+                        <div style={{ position: 'absolute', backgroundColor: fColor.amber.base.toHexString(), top: 0, left: 0, bottom: 0, width: `${this.state.pullProgress * 100}%` }} />
                     </div>
                     <div style={{ display: 'flex', paddingTop: 16 }}>
                         <div style={{ flexGrow: 1 }} />
