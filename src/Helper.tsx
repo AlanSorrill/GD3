@@ -186,6 +186,22 @@ const EnglishNumbers = {
     Trillion: 1000000000000
 }
 export {EnglishNumbers}
+
+
+Array.prototype.mapOrConsumeInPlace = function <T>(shouldKeep: (value: T, index: number) => (T | false)): T[] {
+    let ths = this as Array<T>
+    let out: T[] = []
+    for (let i = 0; i < ths.length; i++) {
+        let fresh = shouldKeep(this[i], i)
+        if (fresh == false) {
+            ths.splice(i, 1);
+        } else {
+            this[i] = fresh
+        }
+    }
+    return this;
+}
+
 Number.prototype.toEnglish = function () {
     let ths = this as number
     let abs = Math.abs(ths)
@@ -205,20 +221,6 @@ Number.prototype.toEnglish = function () {
     }
     return `${ths}`
 
-}
-
-Array.prototype.mapOrConsumeInPlace = function <T>(shouldKeep: (value: T, index: number) => (T | false)): T[] {
-    let ths = this as Array<T>
-    let out: T[] = []
-    for (let i = 0; i < ths.length; i++) {
-        let fresh = shouldKeep(this[i], i)
-        if (fresh == false) {
-            ths.splice(i, 1);
-        } else {
-            this[i] = fresh
-        }
-    }
-    return this;
 }
 if (typeof Number.prototype.isEven == 'undefined') {
     Number.prototype.isEven = function () {
@@ -251,6 +253,7 @@ if (typeof Number.prototype.clamp == 'undefined') {
         return Math.max(0, Math.min(1, this))
     }
 }
+
 if (typeof Array.prototype.insertBetweenEach == 'undefined') {
     Array.prototype.insertBetweenEach = function <T>(item: T | ((afterIndex: number, left: T, right: T) => T)) {
         let out: T[] = []
